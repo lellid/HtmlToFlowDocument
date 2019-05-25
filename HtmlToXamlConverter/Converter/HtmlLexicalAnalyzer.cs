@@ -172,6 +172,7 @@ namespace HtmlToXamlDemo
         _nextToken.Append('>');
         GetNextCharacter();
         // Note: _ignoreNextWhitespace must be set appropriately on tag start processing
+        _ignoreNextWhitespace = false; // Whitespaces after closing tags may be significant
       }
       else if (NextCharacter == '/' && _lookAheadCharacter == '>')
       {
