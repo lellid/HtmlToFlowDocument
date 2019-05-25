@@ -66,7 +66,7 @@ namespace HtmlToXamlDemo
   ///     HtmlParser class accepts a string of possibly badly formed Html, parses it and returns a string
   ///     of well-formed Html that is as close to the original string in content as possible
   /// </summary>
-  internal class HtmlParser
+  public class HtmlParser
   {
     // ---------------------------------------------------------------------
     //
@@ -118,7 +118,7 @@ namespace HtmlToXamlDemo
     /// <returns>
     ///     XmlElement rep
     /// </returns>
-    internal static XmlElement ParseHtml(string htmlString)
+    public static XmlElement ParseHtml(string htmlString)
     {
       var htmlParser = new HtmlParser(htmlString);
 
