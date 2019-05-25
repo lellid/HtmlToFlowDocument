@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Xml;
 
@@ -12,9 +13,15 @@ namespace HtmlToXamlDemo
   internal class CssStylesheet
   {
     private List<StyleDefinition> _styleDefinitions;
+
+    private Func<string, string> _cssStyleSheetProvider;
+
+    private List<ExCSS.Stylesheet> _externalStyleSheets = new List<ExCSS.Stylesheet>();
     // Constructor
-    public CssStylesheet(XmlElement htmlElement)
+    public CssStylesheet(XmlElement htmlElement, Func<string, string> cssStyleSheetProvider)
     {
+      _cssStyleSheetProvider = cssStyleSheetProvider;
+
       if (htmlElement != null)
       {
         DiscoverStyleDefinitions(htmlElement);
@@ -27,6 +34,17 @@ namespace HtmlToXamlDemo
     {
       if (htmlElement.LocalName.ToLower() == "link")
       {
+        if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel") == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
+        {
+          var fileName = htmlElement.GetAttribute("href");
+          var cssContent = _cssStyleSheetProvider?.Invoke(fileName);
+          if (!string.IsNullOrEmpty(cssContent))
+          {
+            var styleSheet = ExCSS.StylesheetParser.Default.Parse(cssContent);
+            _externalStyleSheets.Add(styleSheet);
+          }
+        }
+
         return;
         //  Add LINK elements processing for included stylesheets
         // <LINK href="http://sc.msn.com/global/css/ptnr/orange.css" type=text/css \r\nrel=stylesheet>
@@ -181,6 +199,34 @@ namespace HtmlToXamlDemo
           if (MatchSelectorLevel(selectorLevel, sourceContext[sourceContext.Count - 1]))
           {
             return _styleDefinitions[i].Definition;
+          }
+        }
+      }
+
+      foreach (var styleSheet in _externalStyleSheets)
+      {
+        foreach (var rule in styleSheet.Rules.OfType<ExCSS.StyleRule>())
+        {
+          var selector = rule.SelectorText;
+          var selectorLevels = selector.Split(' ');
+
+          var indexInSelector = selectorLevels.Length - 1;
+          var indexInContext = sourceContext.Count - 1;
+          var selectorLevel = selectorLevels[indexInSelector].Trim();
+
+          if (MatchSelectorLevel(selectorLevel, sourceContext[sourceContext.Count - 1]))
+          {
+            var ruleText = rule.Text;
+
+            var idx = ruleText.IndexOf("{");
+            if (idx >= 0)
+            {
+              ruleText = ruleText.Substring(idx + 1);
+              ruleText = ruleText.TrimEnd();
+              ruleText = ruleText.TrimEnd('}');
+            }
+
+            return ruleText;
           }
         }
       }
