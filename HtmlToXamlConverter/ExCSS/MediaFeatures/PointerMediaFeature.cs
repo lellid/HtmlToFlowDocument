@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class PointerMediaFeature : MediaFeature
+  internal sealed class PointerMediaFeature : MediaFeature
+  {
+    private static readonly IValueConverter TheConverter = Map.PointerAccuracies.ToConverter();
+
+    public PointerMediaFeature()
+        : base(FeatureNames.Pointer)
     {
-        private static readonly IValueConverter TheConverter = Map.PointerAccuracies.ToConverter();
-
-        public PointerMediaFeature()
-            : base(FeatureNames.Pointer)
-        {
-        }
-
-        internal override IValueConverter Converter => TheConverter;
     }
+
+    internal override IValueConverter Converter => TheConverter;
+  }
 }

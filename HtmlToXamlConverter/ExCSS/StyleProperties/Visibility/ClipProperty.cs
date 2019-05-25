@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ClipProperty : Property
+  internal sealed class ClipProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.ShapeConverter.OrDefault();
+
+    internal ClipProperty()
+        : base(PropertyNames.Clip, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.ShapeConverter.OrDefault();
-
-        internal ClipProperty()
-            : base(PropertyNames.Clip, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

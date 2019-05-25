@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ColumnSpanProperty : Property
+  internal sealed class ColumnSpanProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.ColumnSpanConverter.OrDefault(false);
+
+    internal ColumnSpanProperty()
+        : base(PropertyNames.ColumnSpan)
     {
-        private static readonly IValueConverter StyleConverter = Converters.ColumnSpanConverter.OrDefault(false);
-
-        internal ColumnSpanProperty()
-            : base(PropertyNames.ColumnSpan)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

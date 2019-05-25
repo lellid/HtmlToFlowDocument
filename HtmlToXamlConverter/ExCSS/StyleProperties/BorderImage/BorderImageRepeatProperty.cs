@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class BorderImageRepeatProperty : Property
+  internal sealed class BorderImageRepeatProperty : Property
+  {
+    internal static readonly IValueConverter TheConverter = Map.BorderRepeatModes.ToConverter().Many(1, 2);
+    private static readonly IValueConverter StyleConverter = TheConverter.OrDefault(BorderRepeat.Stretch);
+
+    internal BorderImageRepeatProperty()
+        : base(PropertyNames.BorderImageRepeat)
     {
-        internal static readonly IValueConverter TheConverter = Map.BorderRepeatModes.ToConverter().Many(1, 2);
-        private static readonly IValueConverter StyleConverter = TheConverter.OrDefault(BorderRepeat.Stretch);
-
-        internal BorderImageRepeatProperty()
-            : base(PropertyNames.BorderImageRepeat)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

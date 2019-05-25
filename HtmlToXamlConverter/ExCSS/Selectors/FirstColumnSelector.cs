@@ -1,11 +1,11 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class FirstColumnSelector : ChildSelector
+  internal sealed class FirstColumnSelector : ChildSelector
+  {
+    public FirstColumnSelector()
+        : base(PseudoClassNames.NthColumn)
     {
-        public FirstColumnSelector()
-            : base(PseudoClassNames.NthColumn)
-        {
-        }
     }
+  }
 }

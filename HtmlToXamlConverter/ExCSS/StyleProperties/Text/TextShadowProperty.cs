@@ -2,15 +2,15 @@
 
 namespace ExCSS
 {
-    internal sealed class TextShadowProperty : Property
+  internal sealed class TextShadowProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.MultipleShadowConverter.OrDefault();
+
+    internal TextShadowProperty()
+        : base(PropertyNames.TextShadow, PropertyFlags.Inherited | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.MultipleShadowConverter.OrDefault();
-
-        internal TextShadowProperty()
-            : base(PropertyNames.TextShadow, PropertyFlags.Inherited | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

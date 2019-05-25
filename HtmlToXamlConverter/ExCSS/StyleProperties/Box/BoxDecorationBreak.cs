@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class BoxDecorationBreak : Property
+  internal sealed class BoxDecorationBreak : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.BoxDecorationConverter.OrDefault(false);
+
+    internal BoxDecorationBreak()
+        : base(PropertyNames.BoxDecorationBreak)
     {
-        private static readonly IValueConverter StyleConverter = Converters.BoxDecorationConverter.OrDefault(false);
-
-        internal BoxDecorationBreak()
-            : base(PropertyNames.BoxDecorationBreak)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

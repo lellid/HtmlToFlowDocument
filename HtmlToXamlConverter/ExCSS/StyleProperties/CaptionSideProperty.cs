@@ -1,14 +1,14 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class CaptionSideProperty : Property
+  internal sealed class CaptionSideProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.CaptionSideConverter.OrDefault(true);
+
+    internal CaptionSideProperty() : base(PropertyNames.CaptionSide)
     {
-        private static readonly IValueConverter StyleConverter = Converters.CaptionSideConverter.OrDefault(true);
-
-        internal CaptionSideProperty() : base(PropertyNames.CaptionSide)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

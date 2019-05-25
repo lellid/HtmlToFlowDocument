@@ -2,19 +2,19 @@
 
 namespace ExCSS
 {
-    internal sealed class UnknownRule : Rule
+  internal sealed class UnknownRule : Rule
+  {
+    public UnknownRule(string name, StylesheetParser parser)
+        : base(RuleType.Unknown, parser)
     {
-        public UnknownRule(string name, StylesheetParser parser)
-            : base(RuleType.Unknown, parser)
-        {
-            Name = name;
-        }
-
-        public string Name { get; }
-
-        public override void ToCss(TextWriter writer, IStyleFormatter formatter)
-        {
-            writer.Write(StylesheetText?.Text);
-        }
+      Name = name;
     }
+
+    public string Name { get; }
+
+    public override void ToCss(TextWriter writer, IStyleFormatter formatter)
+    {
+      writer.Write(StylesheetText?.Text);
+    }
+  }
 }

@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class BottomProperty : Property
+  internal sealed class BottomProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.AutoLengthOrPercentConverter.OrDefault(Keywords.Auto);
+
+    internal BottomProperty()
+        : base(PropertyNames.Bottom, PropertyFlags.Unitless | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.AutoLengthOrPercentConverter.OrDefault(Keywords.Auto);
-
-        internal BottomProperty()
-            : base(PropertyNames.Bottom, PropertyFlags.Unitless | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

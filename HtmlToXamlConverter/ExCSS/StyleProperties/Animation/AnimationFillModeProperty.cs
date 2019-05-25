@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class AnimationFillModeProperty : Property
+  internal sealed class AnimationFillModeProperty : Property
+  {
+    private static readonly IValueConverter ListConverter =
+        Converters.AnimationFillStyleConverter.FromList().OrDefault(AnimationFillStyle.None);
+
+    internal AnimationFillModeProperty()
+        : base(PropertyNames.AnimationFillMode)
     {
-        private static readonly IValueConverter ListConverter =
-            Converters.AnimationFillStyleConverter.FromList().OrDefault(AnimationFillStyle.None);
-
-        internal AnimationFillModeProperty()
-            : base(PropertyNames.AnimationFillMode)
-        {
-        }
-
-        internal override IValueConverter Converter => ListConverter;
     }
+
+    internal override IValueConverter Converter => ListConverter;
+  }
 }

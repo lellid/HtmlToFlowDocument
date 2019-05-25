@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class BorderLeftColorProperty : Property
+  internal sealed class BorderLeftColorProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.CurrentColorConverter.OrDefault(Color.Transparent);
+
+    internal BorderLeftColorProperty()
+        : base(PropertyNames.BorderLeftColor)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.CurrentColorConverter.OrDefault(Color.Transparent);
-
-        internal BorderLeftColorProperty()
-            : base(PropertyNames.BorderLeftColor)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

@@ -1,11 +1,11 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class LastTypeSelector : ChildSelector
+  internal sealed class LastTypeSelector : ChildSelector
+  {
+    public LastTypeSelector()
+        : base(PseudoClassNames.NthLastOfType)
     {
-        public LastTypeSelector()
-            : base(PseudoClassNames.NthLastOfType)
-        {
-        }
     }
+  }
 }

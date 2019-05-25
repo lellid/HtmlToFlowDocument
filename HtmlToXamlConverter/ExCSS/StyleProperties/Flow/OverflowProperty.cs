@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class OverflowProperty : Property
+  internal sealed class OverflowProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.OverflowModeConverter.OrDefault(Overflow.Visible);
+
+    internal OverflowProperty()
+        : base(PropertyNames.Overflow)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.OverflowModeConverter.OrDefault(Overflow.Visible);
-
-        internal OverflowProperty()
-            : base(PropertyNames.Overflow)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

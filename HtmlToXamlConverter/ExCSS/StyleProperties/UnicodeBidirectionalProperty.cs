@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class UnicodeBidirectionalProperty : Property
+  internal sealed class UnicodeBidirectionalProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.UnicodeModeConverter.OrDefault(UnicodeMode.Normal);
+
+    internal UnicodeBidirectionalProperty()
+        : base(PropertyNames.UnicodeBidirectional)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.UnicodeModeConverter.OrDefault(UnicodeMode.Normal);
-
-        internal UnicodeBidirectionalProperty()
-            : base(PropertyNames.UnicodeBidirectional)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

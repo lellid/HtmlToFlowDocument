@@ -1,11 +1,11 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class LastColumnSelector : ChildSelector
+  internal sealed class LastColumnSelector : ChildSelector
+  {
+    public LastColumnSelector()
+        : base(PseudoClassNames.NthLastColumn)
     {
-        public LastColumnSelector()
-            : base(PseudoClassNames.NthLastColumn)
-        {
-        }
     }
+  }
 }

@@ -1,14 +1,14 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class WidthMediaFeature : MediaFeature
+  internal sealed class WidthMediaFeature : MediaFeature
+  {
+    public WidthMediaFeature(string name)
+        : base(name)
     {
-        public WidthMediaFeature(string name)
-            : base(name)
-        {
-        }
-
-        internal override IValueConverter Converter => Converters.LengthConverter;
-
     }
+
+    internal override IValueConverter Converter => Converters.LengthConverter;
+
+  }
 }

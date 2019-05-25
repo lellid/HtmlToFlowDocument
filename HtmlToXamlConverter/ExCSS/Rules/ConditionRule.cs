@@ -1,11 +1,11 @@
 ﻿
 namespace ExCSS
 {
-    internal abstract class ConditionRule : GroupingRule
+  internal abstract class ConditionRule : GroupingRule
+  {
+    internal ConditionRule(RuleType type, StylesheetParser parser)
+        : base(type, parser)
     {
-        internal ConditionRule(RuleType type, StylesheetParser parser)
-            : base(type, parser)
-        {
-        }
     }
+  }
 }

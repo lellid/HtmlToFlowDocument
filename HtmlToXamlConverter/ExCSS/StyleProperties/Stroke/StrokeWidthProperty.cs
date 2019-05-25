@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class StrokeWidthProperty : Property
+  internal sealed class StrokeWidthProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.LengthOrPercentConverter;
+
+    internal StrokeWidthProperty()
+        : base(PropertyNames.StrokeWidth, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.LengthOrPercentConverter;
-
-        internal StrokeWidthProperty()
-            : base(PropertyNames.StrokeWidth, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

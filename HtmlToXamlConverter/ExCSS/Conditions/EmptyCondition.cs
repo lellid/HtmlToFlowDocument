@@ -2,14 +2,14 @@
 
 namespace ExCSS
 {
-    internal sealed class EmptyCondition : StylesheetNode, IConditionFunction
+  internal sealed class EmptyCondition : StylesheetNode, IConditionFunction
+  {
+    public bool Check()
     {
-        public bool Check()
-        {
-            return true;
-        }
-        public override void ToCss(TextWriter writer, IStyleFormatter formatter)
-        {
-        }
+      return true;
     }
+    public override void ToCss(TextWriter writer, IStyleFormatter formatter)
+    {
+    }
+  }
 }

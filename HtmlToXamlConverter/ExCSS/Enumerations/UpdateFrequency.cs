@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-    public enum UpdateFrequency : byte
-    {
-        None,
-        Slow,
-        Normal
-    }
+  public enum UpdateFrequency : byte
+  {
+    None,
+    Slow,
+    Normal
+  }
 }

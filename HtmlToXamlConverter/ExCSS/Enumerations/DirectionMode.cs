@@ -1,8 +1,8 @@
 ﻿namespace ExCSS
 {
-    public enum DirectionMode : byte
-    {
-        Ltr,
-        Rtl
-    }
+  public enum DirectionMode : byte
+  {
+    Ltr,
+    Rtl
+  }
 }

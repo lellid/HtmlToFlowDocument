@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class PaddingTopProperty : Property
+  internal sealed class PaddingTopProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.LengthOrPercentConverter.OrDefault(Length.Zero);
+
+    internal PaddingTopProperty()
+        : base(PropertyNames.PaddingTop, PropertyFlags.Unitless | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.LengthOrPercentConverter.OrDefault(Length.Zero);
-
-        internal PaddingTopProperty()
-            : base(PropertyNames.PaddingTop, PropertyFlags.Unitless | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

@@ -1,10 +1,10 @@
 ﻿namespace ExCSS
 {
-    public enum TextDecorationLine : byte
-    {
-        Underline,
-        Overline,
-        LineThrough,
-        Blink
-    }
+  public enum TextDecorationLine : byte
+  {
+    Underline,
+    Overline,
+    LineThrough,
+    Blink
+  }
 }

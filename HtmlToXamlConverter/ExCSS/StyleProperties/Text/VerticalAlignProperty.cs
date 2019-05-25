@@ -1,18 +1,18 @@
 ﻿
 namespace ExCSS
 {
-    using static Converters;
+  using static Converters;
 
-    internal sealed class VerticalAlignProperty : Property
+  internal sealed class VerticalAlignProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = LengthOrPercentConverter.Or(
+        VerticalAlignmentConverter).OrDefault(VerticalAlignment.Baseline);
+
+    internal VerticalAlignProperty()
+        : base(PropertyNames.VerticalAlign, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = LengthOrPercentConverter.Or(
-            VerticalAlignmentConverter).OrDefault(VerticalAlignment.Baseline);
-
-        internal VerticalAlignProperty()
-            : base(PropertyNames.VerticalAlign, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

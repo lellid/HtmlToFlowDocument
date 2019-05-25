@@ -3,21 +3,21 @@ using System.Collections.Generic;
 
 namespace ExCSS
 {
-    public sealed class PseudoElementSelectorFactory
+  public sealed class PseudoElementSelectorFactory
+  {
+    private static readonly Lazy<PseudoElementSelectorFactory> Lazy =
+        new Lazy<PseudoElementSelectorFactory>(() => new PseudoElementSelectorFactory());
+
+    internal static PseudoElementSelectorFactory Instance => Lazy.Value;
+
+    private PseudoElementSelectorFactory()
     {
-        private static readonly Lazy<PseudoElementSelectorFactory> Lazy =
-            new Lazy<PseudoElementSelectorFactory>(() => new PseudoElementSelectorFactory());
+    }
 
-        internal static PseudoElementSelectorFactory Instance => Lazy.Value;
-
-        private PseudoElementSelectorFactory()
+    #region Selectors
+    private readonly Dictionary<string, ISelector> _selectors =
+        new Dictionary<string, ISelector>(StringComparer.OrdinalIgnoreCase)
         {
-        }
-
-        #region Selectors
-        private readonly Dictionary<string, ISelector> _selectors =
-            new Dictionary<string, ISelector>(StringComparer.OrdinalIgnoreCase)
-            {
                 //TODO some lack implementation (selection, content, ...)
                 // some implementations are dubious (first-line, first-letter, ...)
                 {
@@ -43,14 +43,14 @@ namespace ExCSS
                     SimpleSelector.PseudoElement( PseudoElementNames.FirstLetter)
                 },
                 {PseudoElementNames.Content, SimpleSelector.PseudoElement( PseudoElementNames.Content)}
-            };
-        #endregion
+        };
+    #endregion
 
-        public ISelector Create(string name)
-        {
-            ISelector selector;
+    public ISelector Create(string name)
+    {
+      ISelector selector;
 
-            return _selectors.TryGetValue(name, out selector) ? selector : null;
-        }
+      return _selectors.TryGetValue(name, out selector) ? selector : null;
     }
+  }
 }

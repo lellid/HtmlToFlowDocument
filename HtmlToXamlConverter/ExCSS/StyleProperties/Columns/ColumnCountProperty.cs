@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ColumnCountProperty : Property
+  internal sealed class ColumnCountProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.OptionalIntegerConverter.OrDefault();
+
+    internal ColumnCountProperty()
+        : base(PropertyNames.ColumnCount, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.OptionalIntegerConverter.OrDefault();
-
-        internal ColumnCountProperty()
-            : base(PropertyNames.ColumnCount, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

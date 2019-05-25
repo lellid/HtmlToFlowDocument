@@ -1,7 +1,7 @@
 ﻿namespace ExCSS
 {
-    public interface IConditionFunction : IStylesheetNode
-    {
-        bool Check();
-    }
+  public interface IConditionFunction : IStylesheetNode
+  {
+    bool Check();
+  }
 }

@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-    public enum WordBreak : byte
-    {
-        Normal,
-        BreakAll,
-        KeepAll
-    }
+  public enum WordBreak : byte
+  {
+    Normal,
+    BreakAll,
+    KeepAll
+  }
 }

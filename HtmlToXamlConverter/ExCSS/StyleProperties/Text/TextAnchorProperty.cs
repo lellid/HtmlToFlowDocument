@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class TextAnchorProperty : Property
+  internal sealed class TextAnchorProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.TextAnchorConverter;
+
+    public TextAnchorProperty()
+        : base(PropertyNames.TextAnchor)
     {
-        private static readonly IValueConverter StyleConverter = Converters.TextAnchorConverter;
-
-        public TextAnchorProperty()
-            : base(PropertyNames.TextAnchor)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

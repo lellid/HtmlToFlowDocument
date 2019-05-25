@@ -1,8 +1,8 @@
 ﻿namespace ExCSS
 {
-    public enum FontVariant : byte
-    {
-        Normal,
-        SmallCaps
-    }
+  public enum FontVariant : byte
+  {
+    Normal,
+    SmallCaps
+  }
 }

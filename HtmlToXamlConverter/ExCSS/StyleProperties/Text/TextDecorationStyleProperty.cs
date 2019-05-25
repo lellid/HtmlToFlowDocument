@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class TextDecorationStyleProperty : Property
+  internal sealed class TextDecorationStyleProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.TextDecorationStyleConverter.OrDefault(TextDecorationStyle.Solid);
+
+    internal TextDecorationStyleProperty()
+        : base(PropertyNames.TextDecorationStyle)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.TextDecorationStyleConverter.OrDefault(TextDecorationStyle.Solid);
-
-        internal TextDecorationStyleProperty()
-            : base(PropertyNames.TextDecorationStyle)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

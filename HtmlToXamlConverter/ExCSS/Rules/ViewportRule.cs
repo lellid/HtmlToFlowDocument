@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ViewportRule : DeclarationRule
+  internal sealed class ViewportRule : DeclarationRule
+  {
+    internal ViewportRule(StylesheetParser parser)
+        : base(RuleType.Viewport, RuleNames.ViewPort, parser)
     {
-        internal ViewportRule(StylesheetParser parser)
-            : base(RuleType.Viewport, RuleNames.ViewPort, parser)
-        {
-        }
-
-        protected override Property CreateNewProperty(string name)
-        {
-            return PropertyFactory.Instance.CreateViewport(name);
-        }
     }
+
+    protected override Property CreateNewProperty(string name)
+    {
+      return PropertyFactory.Instance.CreateViewport(name);
+    }
+  }
 }

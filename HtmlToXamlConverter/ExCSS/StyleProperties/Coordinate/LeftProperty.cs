@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class LeftProperty : Property
+  internal sealed class LeftProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.AutoLengthOrPercentConverter.OrDefault(Keywords.Auto);
+
+    internal LeftProperty()
+        : base(PropertyNames.Left, PropertyFlags.Unitless | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.AutoLengthOrPercentConverter.OrDefault(Keywords.Auto);
-
-        internal LeftProperty()
-            : base(PropertyNames.Left, PropertyFlags.Unitless | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

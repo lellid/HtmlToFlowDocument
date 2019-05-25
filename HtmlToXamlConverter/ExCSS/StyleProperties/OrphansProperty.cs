@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class OrphansProperty : Property
+  internal sealed class OrphansProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.NaturalIntegerConverter.OrDefault(2);
+
+    internal OrphansProperty()
+        : base(PropertyNames.Orphans, PropertyFlags.Inherited)
     {
-        private static readonly IValueConverter StyleConverter = Converters.NaturalIntegerConverter.OrDefault(2);
-
-        internal OrphansProperty()
-            : base(PropertyNames.Orphans, PropertyFlags.Inherited)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

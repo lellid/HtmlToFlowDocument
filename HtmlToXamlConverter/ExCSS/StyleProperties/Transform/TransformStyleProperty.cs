@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class TransformStyleProperty : Property
+  internal sealed class TransformStyleProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.Toggle(Keywords.Flat, Keywords.Preserve3d).OrDefault(true);
+
+    internal TransformStyleProperty()
+        : base(PropertyNames.TransformStyle)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.Toggle(Keywords.Flat, Keywords.Preserve3d).OrDefault(true);
-
-        internal TransformStyleProperty()
-            : base(PropertyNames.TransformStyle)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

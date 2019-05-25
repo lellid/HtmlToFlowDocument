@@ -1,17 +1,17 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ScanMediaFeature : MediaFeature
+  internal sealed class ScanMediaFeature : MediaFeature
+  {
+
+    private static readonly IValueConverter TheConverter = Converters.Toggle(Keywords.Interlace,
+        Keywords.Progressive);
+
+    public ScanMediaFeature()
+        : base(FeatureNames.Scan)
     {
-
-        private static readonly IValueConverter TheConverter = Converters.Toggle(Keywords.Interlace,
-            Keywords.Progressive);
-
-        public ScanMediaFeature()
-            : base(FeatureNames.Scan)
-        {
-        }
-
-        internal override IValueConverter Converter => TheConverter;
     }
+
+    internal override IValueConverter Converter => TheConverter;
+  }
 }

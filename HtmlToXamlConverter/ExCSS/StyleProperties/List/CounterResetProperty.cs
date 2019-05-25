@@ -1,18 +1,18 @@
 ﻿
 namespace ExCSS
 {
-    using static Converters;
+  using static Converters;
 
-    internal sealed class CounterResetProperty : Property
+  internal sealed class CounterResetProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Continuous(
+        WithOrder(IdentifierConverter.Required(), IntegerConverter.Option(0))).OrDefault();
+
+    internal CounterResetProperty()
+        : base(PropertyNames.CounterReset)
     {
-        private static readonly IValueConverter StyleConverter = Continuous(
-            WithOrder(IdentifierConverter.Required(), IntegerConverter.Option(0))).OrDefault();
-
-        internal CounterResetProperty()
-            : base(PropertyNames.CounterReset)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class BorderLeftStyleProperty : Property
+  internal sealed class BorderLeftStyleProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.LineStyleConverter.OrDefault(LineStyle.None);
+
+    internal BorderLeftStyleProperty()
+        : base(PropertyNames.BorderLeftStyle)
     {
-        private static readonly IValueConverter StyleConverter = Converters.LineStyleConverter.OrDefault(LineStyle.None);
-
-        internal BorderLeftStyleProperty()
-            : base(PropertyNames.BorderLeftStyle)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

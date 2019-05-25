@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class ObjectFitProperty : Property
+  internal sealed class ObjectFitProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.ObjectFittingConverter.OrDefault(ObjectFitting.Fill);
+
+    internal ObjectFitProperty()
+        : base(PropertyNames.ObjectFit)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.ObjectFittingConverter.OrDefault(ObjectFitting.Fill);
-
-        internal ObjectFitProperty()
-            : base(PropertyNames.ObjectFit)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

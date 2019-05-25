@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class PositionProperty : Property
+  internal sealed class PositionProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.PositionModeConverter.OrDefault(PositionMode.Static);
+
+    internal PositionProperty()
+        : base(PropertyNames.Position)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.PositionModeConverter.OrDefault(PositionMode.Static);
-
-        internal PositionProperty()
-            : base(PropertyNames.Position)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

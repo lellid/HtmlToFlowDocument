@@ -1,17 +1,17 @@
 ﻿namespace ExCSS
 {
-    internal sealed class MatrixTransform : ITransform
+  internal sealed class MatrixTransform : ITransform
+  {
+    private readonly float[] _values;
+
+    internal MatrixTransform(float[] values)
     {
-        private readonly float[] _values;
-
-        internal MatrixTransform(float[] values)
-        {
-            _values = values;
-        }
-
-        public TransformMatrix ComputeMatrix()
-        {
-            return new TransformMatrix(_values);
-        }
+      _values = values;
     }
+
+    public TransformMatrix ComputeMatrix()
+    {
+      return new TransformMatrix(_values);
+    }
+  }
 }

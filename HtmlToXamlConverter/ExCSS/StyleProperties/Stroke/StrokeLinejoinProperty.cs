@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class StrokeLinejoinProperty : Property
+  internal sealed class StrokeLinejoinProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.StrokeLinejoinConverter;
+
+    public StrokeLinejoinProperty()
+        : base(PropertyNames.StrokeLinejoin, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.StrokeLinejoinConverter;
-
-        public StrokeLinejoinProperty()
-            : base(PropertyNames.StrokeLinejoin, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

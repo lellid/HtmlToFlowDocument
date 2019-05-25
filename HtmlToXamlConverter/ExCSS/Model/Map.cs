@@ -3,29 +3,29 @@ using System.Collections.Generic;
 
 namespace ExCSS
 {
-    internal static class Map
-    {
-        public static readonly Dictionary<string, Whitespace> WhitespaceModes =
-            new Dictionary<string, Whitespace>(StringComparer.OrdinalIgnoreCase)
-            {
+  internal static class Map
+  {
+    public static readonly Dictionary<string, Whitespace> WhitespaceModes =
+        new Dictionary<string, Whitespace>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, Whitespace.Normal},
                 {Keywords.Pre, Whitespace.Pre},
                 {Keywords.Nowrap, Whitespace.NoWrap},
                 {Keywords.PreWrap, Whitespace.PreWrap},
                 {Keywords.PreLine, Whitespace.PreLine}
-            };
-        public static readonly Dictionary<string, TextTransform> TextTransforms =
-            new Dictionary<string, TextTransform>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextTransform> TextTransforms =
+        new Dictionary<string, TextTransform>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, TextTransform.None},
                 {Keywords.Capitalize, TextTransform.Capitalize},
                 {Keywords.Uppercase, TextTransform.Uppercase},
                 {Keywords.Lowercase, TextTransform.Lowercase},
                 {Keywords.FullWidth, TextTransform.FullWidth}
-            };
-        public static readonly Dictionary<string, TextAlignLast> TextAlignmentsLast =
-            new Dictionary<string, TextAlignLast>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextAlignLast> TextAlignmentsLast =
+        new Dictionary<string, TextAlignLast>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, TextAlignLast.Auto},
                 {Keywords.Start, TextAlignLast.Start},
                 {Keywords.End, TextAlignLast.End},
@@ -33,17 +33,17 @@ namespace ExCSS
                 {Keywords.Left, TextAlignLast.Left},
                 {Keywords.Center, TextAlignLast.Center},
                 {Keywords.Justify, TextAlignLast.Justify}
-            };
-        public static readonly Dictionary<string, TextAnchor> TextAnchors =
-            new Dictionary<string, TextAnchor>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextAnchor> TextAnchors =
+        new Dictionary<string, TextAnchor>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Start, TextAnchor.Start},
                 {Keywords.Middle, TextAnchor.Middle},
                 {Keywords.End, TextAnchor.End}
-            };
-        public static readonly Dictionary<string, TextJustify> TextJustifyOptions =
-            new Dictionary<string, TextJustify>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextJustify> TextJustifyOptions =
+        new Dictionary<string, TextJustify>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, TextJustify.Auto},
                 {Keywords.Distribute, TextJustify.Distribute},
                 {Keywords.DistributeAllLines, TextJustify.DistributeAllLines},
@@ -53,18 +53,18 @@ namespace ExCSS
                 {Keywords.InterWord, TextJustify.InterWord},
                 {Keywords.Kashida, TextJustify.Kashida},
                 {Keywords.Newspaper, TextJustify.Newspaper}
-            };
-        public static readonly Dictionary<string, HorizontalAlignment> HorizontalAlignments =
-            new Dictionary<string, HorizontalAlignment>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, HorizontalAlignment> HorizontalAlignments =
+        new Dictionary<string, HorizontalAlignment>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Left, HorizontalAlignment.Left},
                 {Keywords.Right, HorizontalAlignment.Right},
                 {Keywords.Center, HorizontalAlignment.Center},
                 {Keywords.Justify, HorizontalAlignment.Justify}
-            };
-        public static readonly Dictionary<string, VerticalAlignment> VerticalAlignments =
-            new Dictionary<string, VerticalAlignment>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, VerticalAlignment> VerticalAlignments =
+        new Dictionary<string, VerticalAlignment>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Baseline, VerticalAlignment.Baseline},
                 {Keywords.Sub, VerticalAlignment.Sub},
                 {Keywords.Super, VerticalAlignment.Super},
@@ -73,10 +73,10 @@ namespace ExCSS
                 {Keywords.Middle, VerticalAlignment.Middle},
                 {Keywords.Top, VerticalAlignment.Top},
                 {Keywords.Bottom, VerticalAlignment.Bottom}
-            };
-        public static readonly Dictionary<string, LineStyle> LineStyles =
-            new Dictionary<string, LineStyle>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, LineStyle> LineStyles =
+        new Dictionary<string, LineStyle>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, LineStyle.None},
                 {Keywords.Solid, LineStyle.Solid},
                 {Keywords.Double, LineStyle.Double},
@@ -87,17 +87,17 @@ namespace ExCSS
                 {Keywords.Ridge, LineStyle.Ridge},
                 {Keywords.Groove, LineStyle.Groove},
                 {Keywords.Hidden, LineStyle.Hidden}
-            };
-        public static readonly Dictionary<string, BoxModel> BoxModels =
-            new Dictionary<string, BoxModel>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BoxModel> BoxModels =
+        new Dictionary<string, BoxModel>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.BorderBox, BoxModel.BorderBox},
                 {Keywords.PaddingBox, BoxModel.PaddingBox},
                 {Keywords.ContentBox, BoxModel.ContentBox}
-            };
-        public static readonly Dictionary<string, ITimingFunction> TimingFunctions =
-            new Dictionary<string, ITimingFunction>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ITimingFunction> TimingFunctions =
+        new Dictionary<string, ITimingFunction>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Ease, new CubicBezierTimingFunction(0.25f, 0.1f, 0.25f, 1f)},
                 {Keywords.EaseIn, new CubicBezierTimingFunction(0.42f, 0f, 1f, 1f)},
                 {Keywords.EaseOut, new CubicBezierTimingFunction(0f, 0f, 0.58f, 1f)},
@@ -105,51 +105,51 @@ namespace ExCSS
                 {Keywords.Linear, new CubicBezierTimingFunction(0f, 0f, 1f, 1f)},
                 {Keywords.StepStart, new StepsTimingFunction(1, true)},
                 {Keywords.StepEnd, new StepsTimingFunction(1)}
-            };
-        public static readonly Dictionary<string, AnimationFillStyle> AnimationFillStyles =
-            new Dictionary<string, AnimationFillStyle>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, AnimationFillStyle> AnimationFillStyles =
+        new Dictionary<string, AnimationFillStyle>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, AnimationFillStyle.None},
                 {Keywords.Forwards, AnimationFillStyle.Forwards},
                 {Keywords.Backwards, AnimationFillStyle.Backwards},
                 {Keywords.Both, AnimationFillStyle.Both}
-            };
-        public static readonly Dictionary<string, AnimationDirection> AnimationDirections =
-            new Dictionary<string, AnimationDirection>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, AnimationDirection> AnimationDirections =
+        new Dictionary<string, AnimationDirection>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, AnimationDirection.Normal},
                 {Keywords.Reverse, AnimationDirection.Reverse},
                 {Keywords.Alternate, AnimationDirection.Alternate},
                 {Keywords.AlternateReverse, AnimationDirection.AlternateReverse}
-            };
-        public static readonly Dictionary<string, Visibility> Visibilities =
-            new Dictionary<string, Visibility>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, Visibility> Visibilities =
+        new Dictionary<string, Visibility>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Visible, Visibility.Visible},
                 {Keywords.Hidden, Visibility.Hidden},
                 {Keywords.Collapse, Visibility.Collapse}
-            };
-        public static readonly Dictionary<string, PlayState> PlayStates =
-            new Dictionary<string, PlayState>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, PlayState> PlayStates =
+        new Dictionary<string, PlayState>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Running, PlayState.Running},
                 {Keywords.Paused, PlayState.Paused}
-            };
-        public static readonly Dictionary<string, FontVariant> FontVariants =
-            new Dictionary<string, FontVariant>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, FontVariant> FontVariants =
+        new Dictionary<string, FontVariant>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, FontVariant.Normal},
                 {Keywords.SmallCaps, FontVariant.SmallCaps}
-            };
-        public static readonly Dictionary<string, DirectionMode> DirectionModes =
-            new Dictionary<string, DirectionMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, DirectionMode> DirectionModes =
+        new Dictionary<string, DirectionMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Ltr, DirectionMode.Ltr},
                 {Keywords.Rtl, DirectionMode.Rtl}
-            };
-        public static readonly Dictionary<string, ListStyle> ListStyles =
-            new Dictionary<string, ListStyle>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ListStyle> ListStyles =
+        new Dictionary<string, ListStyle>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Disc, ListStyle.Disc},
                 {Keywords.Circle, ListStyle.Circle},
                 {Keywords.Square, ListStyle.Square},
@@ -165,16 +165,16 @@ namespace ExCSS
                 {Keywords.LowerAlpha, ListStyle.LowerLatin},
                 {Keywords.UpperAlpha, ListStyle.UpperLatin},
                 {Keywords.None, ListStyle.None}
-            };
-        public static readonly Dictionary<string, ListPosition> ListPositions =
-            new Dictionary<string, ListPosition>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ListPosition> ListPositions =
+        new Dictionary<string, ListPosition>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Inside, ListPosition.Inside},
                 {Keywords.Outside, ListPosition.Outside}
-            };
-        public static readonly Dictionary<string, FontSize> FontSizes =
-            new Dictionary<string, FontSize>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, FontSize> FontSizes =
+        new Dictionary<string, FontSize>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.XxSmall, FontSize.Tiny},
                 {Keywords.XSmall, FontSize.Little},
                 {Keywords.Small, FontSize.Small},
@@ -184,57 +184,57 @@ namespace ExCSS
                 {Keywords.XxLarge, FontSize.Huge},
                 {Keywords.Larger, FontSize.Smaller},
                 {Keywords.Smaller, FontSize.Larger}
-            };
-        public static readonly Dictionary<string, TextDecorationStyle> TextDecorationStyles =
-            new Dictionary<string, TextDecorationStyle>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextDecorationStyle> TextDecorationStyles =
+        new Dictionary<string, TextDecorationStyle>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Solid, TextDecorationStyle.Solid},
                 {Keywords.Double, TextDecorationStyle.Double},
                 {Keywords.Dotted, TextDecorationStyle.Dotted},
                 {Keywords.Dashed, TextDecorationStyle.Dashed},
                 {Keywords.Wavy, TextDecorationStyle.Wavy}
-            };
-        public static readonly Dictionary<string, TextDecorationLine> TextDecorationLines =
-            new Dictionary<string, TextDecorationLine>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, TextDecorationLine> TextDecorationLines =
+        new Dictionary<string, TextDecorationLine>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Underline, TextDecorationLine.Underline},
                 {Keywords.Overline, TextDecorationLine.Overline},
                 {Keywords.LineThrough, TextDecorationLine.LineThrough},
                 {Keywords.Blink, TextDecorationLine.Blink}
-            };
-        public static readonly Dictionary<string, BorderRepeat> BorderRepeatModes =
-            new Dictionary<string, BorderRepeat>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BorderRepeat> BorderRepeatModes =
+        new Dictionary<string, BorderRepeat>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Stretch, BorderRepeat.Stretch},
                 {Keywords.Repeat, BorderRepeat.Repeat},
                 {Keywords.Round, BorderRepeat.Round}
-            };
-        public static readonly Dictionary<string, string> DefaultFontFamilies =
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, string> DefaultFontFamilies =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Serif, "Times New Roman"},
                 {Keywords.SansSerif, "Arial"},
                 {Keywords.Monospace, "Consolas"},
                 {Keywords.Cursive, "Cursive"},
                 {Keywords.Fantasy, "Comic Sans"}
-            };
-        public static readonly Dictionary<string, BackgroundAttachment> BackgroundAttachments =
-            new Dictionary<string, BackgroundAttachment>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BackgroundAttachment> BackgroundAttachments =
+        new Dictionary<string, BackgroundAttachment>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Fixed, BackgroundAttachment.Fixed},
                 {Keywords.Local, BackgroundAttachment.Local},
                 {Keywords.Scroll, BackgroundAttachment.Scroll}
-            };
-        public static readonly Dictionary<string, FontStyle> FontStyles =
-            new Dictionary<string, FontStyle>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, FontStyle> FontStyles =
+        new Dictionary<string, FontStyle>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, FontStyle.Normal},
                 {Keywords.Italic, FontStyle.Italic},
                 {Keywords.Oblique, FontStyle.Oblique}
-            };
-        public static readonly Dictionary<string, FontStretch> FontStretches =
-            new Dictionary<string, FontStretch>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, FontStretch> FontStretches =
+        new Dictionary<string, FontStretch>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, FontStretch.Normal},
                 {Keywords.UltraCondensed, FontStretch.UltraCondensed},
                 {Keywords.ExtraCondensed, FontStretch.ExtraCondensed},
@@ -244,10 +244,10 @@ namespace ExCSS
                 {Keywords.Expanded, FontStretch.Expanded},
                 {Keywords.ExtraExpanded, FontStretch.ExtraExpanded},
                 {Keywords.UltraExpanded, FontStretch.UltraExpanded}
-            };
-        public static readonly Dictionary<string, BreakMode> BreakModes =
-            new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BreakMode> BreakModes =
+        new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, BreakMode.Auto},
                 {Keywords.Always, BreakMode.Always},
                 {Keywords.Avoid, BreakMode.Avoid},
@@ -257,52 +257,52 @@ namespace ExCSS
                 {Keywords.Column, BreakMode.Column},
                 {Keywords.AvoidPage, BreakMode.AvoidPage},
                 {Keywords.AvoidColumn, BreakMode.AvoidColumn}
-            };
-        public static readonly Dictionary<string, BreakMode> PageBreakModes =
-            new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BreakMode> PageBreakModes =
+        new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, BreakMode.Auto},
                 {Keywords.Always, BreakMode.Always},
                 {Keywords.Avoid, BreakMode.Avoid},
                 {Keywords.Left, BreakMode.Left},
                 {Keywords.Right, BreakMode.Right}
-            };
-        public static readonly Dictionary<string, BreakMode> BreakInsideModes =
-            new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BreakMode> BreakInsideModes =
+        new Dictionary<string, BreakMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, BreakMode.Auto},
                 {Keywords.Avoid, BreakMode.Avoid},
                 {Keywords.AvoidPage, BreakMode.AvoidPage},
                 {Keywords.AvoidColumn, BreakMode.AvoidColumn},
                 {Keywords.AvoidRegion, BreakMode.AvoidRegion}
-            };
-        public static readonly Dictionary<string, float> HorizontalModes =
-            new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, float> HorizontalModes =
+        new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Left, 0f},
                 {Keywords.Center, 0.5f},
                 {Keywords.Right, 1f}
-            };
-        public static readonly Dictionary<string, float> VerticalModes =
-            new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, float> VerticalModes =
+        new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Top, 0f},
                 {Keywords.Center, 0.5f},
                 {Keywords.Bottom, 1f}
-            };
-        public static readonly Dictionary<string, UnicodeMode> UnicodeModes =
-            new Dictionary<string, UnicodeMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, UnicodeMode> UnicodeModes =
+        new Dictionary<string, UnicodeMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, UnicodeMode.Normal},
                 {Keywords.Embed, UnicodeMode.Embed},
                 {Keywords.Isolate, UnicodeMode.Isolate},
                 {Keywords.IsolateOverride, UnicodeMode.IsolateOverride},
                 {Keywords.BidirectionalOverride, UnicodeMode.BidirectionalOverride},
                 {Keywords.Plaintext, UnicodeMode.Plaintext}
-            };
-        public static readonly Dictionary<string, SystemCursor> Cursors =
-            new Dictionary<string, SystemCursor>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, SystemCursor> Cursors =
+        new Dictionary<string, SystemCursor>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Auto, SystemCursor.Auto},
                 {Keywords.Default, SystemCursor.Default},
                 {Keywords.None, SystemCursor.None},
@@ -339,34 +339,34 @@ namespace ExCSS
                 {Keywords.ZoomOut, SystemCursor.ZoomOut},
                 {Keywords.Grab, SystemCursor.Grab},
                 {Keywords.Grabbing, SystemCursor.Grabbing}
-            };
-        public static readonly Dictionary<string, PositionMode> PositionModes =
-            new Dictionary<string, PositionMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, PositionMode> PositionModes =
+        new Dictionary<string, PositionMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Static, PositionMode.Static},
                 {Keywords.Relative, PositionMode.Relative},
                 {Keywords.Absolute, PositionMode.Absolute},
                 {Keywords.Sticky, PositionMode.Sticky},
                 {Keywords.Fixed, PositionMode.Fixed}
-            };
-        public static readonly Dictionary<string, Overflow> OverflowModes =
-            new Dictionary<string, Overflow>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, Overflow> OverflowModes =
+        new Dictionary<string, Overflow>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Visible, Overflow.Visible},
                 {Keywords.Hidden, Overflow.Hidden},
                 {Keywords.Scroll, Overflow.Scroll},
                 {Keywords.Auto, Overflow.Auto}
-            };
-        public static readonly Dictionary<string, Floating> FloatingModes =
-            new Dictionary<string, Floating>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, Floating> FloatingModes =
+        new Dictionary<string, Floating>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, Floating.None},
                 {Keywords.Left, Floating.Left},
                 {Keywords.Right, Floating.Right}
-            };
-        public static readonly Dictionary<string, DisplayMode> DisplayModes =
-            new Dictionary<string, DisplayMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, DisplayMode> DisplayModes =
+        new Dictionary<string, DisplayMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, DisplayMode.None},
                 {Keywords.Inline, DisplayMode.Inline},
                 {Keywords.Block, DisplayMode.Block},
@@ -386,26 +386,26 @@ namespace ExCSS
                 {Keywords.InlineFlex, DisplayMode.InlineFlex},
                 {Keywords.Grid, DisplayMode.Grid},
                 {Keywords.InlineGrid, DisplayMode.InlineGrid}
-            };
-        public static readonly Dictionary<string, ClearMode> ClearModes =
-            new Dictionary<string, ClearMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ClearMode> ClearModes =
+        new Dictionary<string, ClearMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, ClearMode.None},
                 {Keywords.Left, ClearMode.Left},
                 {Keywords.Right, ClearMode.Right},
                 {Keywords.Both, ClearMode.Both}
-            };
-        public static readonly Dictionary<string, BackgroundRepeat> BackgroundRepeats =
-            new Dictionary<string, BackgroundRepeat>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BackgroundRepeat> BackgroundRepeats =
+        new Dictionary<string, BackgroundRepeat>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.NoRepeat, BackgroundRepeat.NoRepeat},
                 {Keywords.Repeat, BackgroundRepeat.Repeat},
                 {Keywords.Round, BackgroundRepeat.Round},
                 {Keywords.Space, BackgroundRepeat.Space}
-            };
-        public static readonly Dictionary<string, BlendMode> BlendModes =
-            new Dictionary<string, BlendMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, BlendMode> BlendModes =
+        new Dictionary<string, BlendMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Color, BlendMode.Color},
                 {Keywords.ColorBurn, BlendMode.ColorBurn},
                 {Keywords.ColorDodge, BlendMode.ColorDodge},
@@ -422,96 +422,96 @@ namespace ExCSS
                 {Keywords.Saturation, BlendMode.Saturation},
                 {Keywords.Screen, BlendMode.Screen},
                 {Keywords.SoftLight, BlendMode.SoftLight}
-            };
-        public static readonly Dictionary<string, UpdateFrequency> UpdateFrequencies =
-            new Dictionary<string, UpdateFrequency>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, UpdateFrequency> UpdateFrequencies =
+        new Dictionary<string, UpdateFrequency>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, UpdateFrequency.None},
                 {Keywords.Slow, UpdateFrequency.Slow},
                 {Keywords.Normal, UpdateFrequency.Normal}
-            };
-        public static readonly Dictionary<string, ScriptingState> ScriptingStates =
-            new Dictionary<string, ScriptingState>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ScriptingState> ScriptingStates =
+        new Dictionary<string, ScriptingState>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, ScriptingState.None},
                 {Keywords.InitialOnly, ScriptingState.InitialOnly},
                 {Keywords.Enabled, ScriptingState.Enabled}
-            };
-        public static readonly Dictionary<string, PointerAccuracy> PointerAccuracies =
-            new Dictionary<string, PointerAccuracy>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, PointerAccuracy> PointerAccuracies =
+        new Dictionary<string, PointerAccuracy>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, PointerAccuracy.None},
                 {Keywords.Coarse, PointerAccuracy.Coarse},
                 {Keywords.Fine, PointerAccuracy.Fine}
-            };
-        public static readonly Dictionary<string, HoverAbility> HoverAbilities =
-            new Dictionary<string, HoverAbility>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, HoverAbility> HoverAbilities =
+        new Dictionary<string, HoverAbility>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, HoverAbility.None},
                 {Keywords.OnDemand, HoverAbility.OnDemand},
                 {Keywords.Hover, HoverAbility.Hover}
-            };
-        public static readonly Dictionary<string, RadialGradient.SizeMode> RadialGradientSizeModes =
-            new Dictionary<string, RadialGradient.SizeMode>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, RadialGradient.SizeMode> RadialGradientSizeModes =
+        new Dictionary<string, RadialGradient.SizeMode>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.ClosestSide, RadialGradient.SizeMode.ClosestSide},
                 {Keywords.FarthestSide, RadialGradient.SizeMode.FarthestSide},
                 {Keywords.ClosestCorner, RadialGradient.SizeMode.ClosestCorner},
                 {Keywords.FarthestCorner, RadialGradient.SizeMode.FarthestCorner}
-            };
-        public static readonly Dictionary<string, ObjectFitting> ObjectFittings =
-            new Dictionary<string, ObjectFitting>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, ObjectFitting> ObjectFittings =
+        new Dictionary<string, ObjectFitting>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.None, ObjectFitting.None},
                 {Keywords.Cover, ObjectFitting.Cover},
                 {Keywords.Contain, ObjectFitting.Contain},
                 {Keywords.Fill, ObjectFitting.Fill},
                 {Keywords.ScaleDown, ObjectFitting.ScaleDown}
-            };
-        public static readonly Dictionary<string, FontWeight> FontWeights =
-            new Dictionary<string, FontWeight>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, FontWeight> FontWeights =
+        new Dictionary<string, FontWeight>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, FontWeight.Normal},
                 {Keywords.Bold, FontWeight.Bold},
                 {Keywords.Bolder, FontWeight.Bolder},
                 {Keywords.Lighter, FontWeight.Lighter}
-            };
-        public static readonly Dictionary<string, SystemFont> SystemFonts =
-            new Dictionary<string, SystemFont>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, SystemFont> SystemFonts =
+        new Dictionary<string, SystemFont>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Caption, SystemFont.Caption},
                 {Keywords.Icon, SystemFont.Icon},
                 {Keywords.Menu, SystemFont.Menu},
                 {Keywords.MessageBox, SystemFont.MessageBox},
                 {Keywords.SmallCaption, SystemFont.SmallCaption},
                 {Keywords.StatusBar, SystemFont.StatusBar}
-            };
-        public static readonly Dictionary<string, StrokeLinecap> StrokeLinecaps =
-            new Dictionary<string, StrokeLinecap>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, StrokeLinecap> StrokeLinecaps =
+        new Dictionary<string, StrokeLinecap>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Butt, StrokeLinecap.Butt},
                 {Keywords.Round, StrokeLinecap.Round},
                 {Keywords.Square, StrokeLinecap.Square}
-            };
-        public static readonly Dictionary<string, StrokeLinejoin> StrokeLinejoins =
-            new Dictionary<string, StrokeLinejoin>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, StrokeLinejoin> StrokeLinejoins =
+        new Dictionary<string, StrokeLinejoin>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Miter, StrokeLinejoin.Miter},
                 {Keywords.Round, StrokeLinejoin.Round},
                 {Keywords.Bevel, StrokeLinejoin.Bevel}
-            };
-        public static readonly Dictionary<string, WordBreak> WordBreaks =
-            new Dictionary<string, WordBreak>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, WordBreak> WordBreaks =
+        new Dictionary<string, WordBreak>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, WordBreak.Normal},
                 {Keywords.BreakAll, WordBreak.BreakAll},
                 {Keywords.KeepAll, WordBreak.KeepAll}
-            };
-        public static readonly Dictionary<string, OverflowWrap> OverflowWraps =
-            new Dictionary<string, OverflowWrap>(StringComparer.OrdinalIgnoreCase)
-            {
+        };
+    public static readonly Dictionary<string, OverflowWrap> OverflowWraps =
+        new Dictionary<string, OverflowWrap>(StringComparer.OrdinalIgnoreCase)
+        {
                 {Keywords.Normal, OverflowWrap.Normal},
                 {Keywords.BreakWord, OverflowWrap.BreakWord}
-            };
-    }
+        };
+  }
 }

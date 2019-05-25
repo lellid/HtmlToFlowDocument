@@ -1,14 +1,14 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class UnknownMediaFeature : MediaFeature
+  internal sealed class UnknownMediaFeature : MediaFeature
+  {
+    public UnknownMediaFeature(string name)
+        : base(name)
     {
-        public UnknownMediaFeature(string name)
-            : base(name)
-        {
-        }
-
-        internal override IValueConverter Converter => Converters.Any;
-
     }
+
+    internal override IValueConverter Converter => Converters.Any;
+
+  }
 }

@@ -1,21 +1,21 @@
 ﻿
 namespace ExCSS
 {
-    using static Converters;
+  using static Converters;
 
-    internal sealed class BorderRightProperty : ShorthandProperty
+  internal sealed class BorderRightProperty : ShorthandProperty
+  {
+    private static readonly IValueConverter StyleConverter = WithAny(
+        LineWidthConverter.Option().For(PropertyNames.BorderRightWidth),
+        LineStyleConverter.Option().For(PropertyNames.BorderRightStyle),
+        CurrentColorConverter.Option().For(PropertyNames.BorderRightColor)
+    ).OrDefault();
+
+    internal BorderRightProperty()
+        : base(PropertyNames.BorderRight, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = WithAny(
-            LineWidthConverter.Option().For(PropertyNames.BorderRightWidth),
-            LineStyleConverter.Option().For(PropertyNames.BorderRightStyle),
-            CurrentColorConverter.Option().For(PropertyNames.BorderRightColor)
-        ).OrDefault();
-
-        internal BorderRightProperty()
-            : base(PropertyNames.BorderRight, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

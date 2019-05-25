@@ -1,18 +1,18 @@
 ﻿
 namespace ExCSS
 {
-    using static Converters;
+  using static Converters;
 
-    internal sealed class FontWeightProperty : Property
+  internal sealed class FontWeightProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = FontWeightConverter.Or(
+        WeightIntegerConverter).OrDefault(FontWeight.Normal);
+
+    internal FontWeightProperty()
+        : base(PropertyNames.FontWeight, PropertyFlags.Inherited | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = FontWeightConverter.Or(
-            WeightIntegerConverter).OrDefault(FontWeight.Normal);
-
-        internal FontWeightProperty()
-            : base(PropertyNames.FontWeight, PropertyFlags.Inherited | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

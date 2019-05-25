@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-    public enum BorderRepeat : byte
-    {
-        Stretch,
-        Repeat,
-        Round
-    }
+  public enum BorderRepeat : byte
+  {
+    Stretch,
+    Repeat,
+    Round
+  }
 }

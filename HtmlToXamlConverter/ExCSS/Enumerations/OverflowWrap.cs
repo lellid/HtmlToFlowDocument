@@ -1,8 +1,8 @@
 ﻿namespace ExCSS
 {
-    public enum OverflowWrap : byte
-    {
-        Normal,
-        BreakWord
-    }
+  public enum OverflowWrap : byte
+  {
+    Normal,
+    BreakWord
+  }
 }

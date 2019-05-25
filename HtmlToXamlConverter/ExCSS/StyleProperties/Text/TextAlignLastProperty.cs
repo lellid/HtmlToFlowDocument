@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class TextAlignLastProperty : Property
+  internal sealed class TextAlignLastProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.TextAlignLastConverter;
+
+    public TextAlignLastProperty()
+        : base(PropertyNames.TextAlignLast)
     {
-        private static readonly IValueConverter StyleConverter = Converters.TextAlignLastConverter;
-
-        public TextAlignLastProperty()
-            : base(PropertyNames.TextAlignLast)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class HoverMediaFeature : MediaFeature
+  internal sealed class HoverMediaFeature : MediaFeature
+  {
+    private static readonly IValueConverter TheConverter = Map.HoverAbilities.ToConverter();
+
+    public HoverMediaFeature()
+        : base(FeatureNames.Hover)
     {
-        private static readonly IValueConverter TheConverter = Map.HoverAbilities.ToConverter();
-
-        public HoverMediaFeature()
-            : base(FeatureNames.Hover)
-        {
-        }
-
-        internal override IValueConverter Converter => TheConverter;
     }
+
+    internal override IValueConverter Converter => TheConverter;
+  }
 }

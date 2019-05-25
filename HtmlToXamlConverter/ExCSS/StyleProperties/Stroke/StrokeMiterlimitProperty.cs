@@ -1,15 +1,15 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class StrokeMiterlimitProperty : Property
+  internal sealed class StrokeMiterlimitProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter = Converters.StrokeMiterlimitConverter;
+
+    public StrokeMiterlimitProperty()
+        : base(PropertyNames.StrokeMiterlimit, PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter = Converters.StrokeMiterlimitConverter;
-
-        public StrokeMiterlimitProperty()
-            : base(PropertyNames.StrokeMiterlimit, PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }

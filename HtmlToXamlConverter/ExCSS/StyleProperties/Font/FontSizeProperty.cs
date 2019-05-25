@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-    internal sealed class FontSizeProperty : Property
+  internal sealed class FontSizeProperty : Property
+  {
+    private static readonly IValueConverter StyleConverter =
+        Converters.FontSizeConverter.OrDefault(FontSize.Medium.ToLength());
+
+    internal FontSizeProperty()
+        : base(PropertyNames.FontSize, PropertyFlags.Inherited | PropertyFlags.Unitless | PropertyFlags.Animatable)
     {
-        private static readonly IValueConverter StyleConverter =
-            Converters.FontSizeConverter.OrDefault(FontSize.Medium.ToLength());
-
-        internal FontSizeProperty()
-            : base(PropertyNames.FontSize, PropertyFlags.Inherited | PropertyFlags.Unitless | PropertyFlags.Animatable)
-        {
-        }
-
-        internal override IValueConverter Converter => StyleConverter;
     }
+
+    internal override IValueConverter Converter => StyleConverter;
+  }
 }
