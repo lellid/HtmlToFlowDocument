@@ -1,6 +1,7 @@
 ﻿// // Copyright (c) Microsoft. All rights reserved.
 // // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -225,7 +226,7 @@ namespace HtmlToXamlDemo
                 break;
               case "font-size":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size",
-                    /*mustBeNonNegative:*/true);
+                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
                 break;
               case "font-style":
                 ParseCssFontStyle(styleValue, ref nextIndex, localProperties);
@@ -238,7 +239,7 @@ namespace HtmlToXamlDemo
                 break;
               case "line-height":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height",
-                    /*mustBeNonNegative:*/true);
+                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
                 break;
               case "word-spacing":
                 //  Implement word-spacing conversion
@@ -274,13 +275,13 @@ namespace HtmlToXamlDemo
                 break;
               case "text-indent":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, "text-indent",
-                    /*mustBeNonNegative:*/false);
+                    /*mustBeNonNegative:*/false, (double)localProperties["font-size-absolute"]);
                 break;
 
               case "width":
               case "height":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true);
+                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
                 break;
 
               case "margin": // top/right/bottom/left
@@ -291,7 +292,7 @@ namespace HtmlToXamlDemo
               case "margin-bottom":
               case "margin-left":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true);
+                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
                 break;
 
               case "padding":
@@ -302,7 +303,7 @@ namespace HtmlToXamlDemo
               case "padding-bottom":
               case "padding-left":
                 ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true);
+                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
                 break;
 
               case "border":
@@ -456,14 +457,57 @@ namespace HtmlToXamlDemo
       return null;
     }
 
-    private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues,
-        string propertyName,
-        bool mustBeNonNegative)
+    private static string ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
     {
       var length = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative);
+      if (length != null && length.EndsWith("em"))
+      {
+        var lenEm = double.Parse(length.Substring(0, length.Length - 2), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+        length = (lenEm * fontSizeAbsolute).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+      }
+      return length;
+    }
+
+    private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues,
+    string propertyName,
+    bool mustBeNonNegative, double fontSizeAbsolute)
+    {
+      var length = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
       if (length != null)
       {
         localValues[propertyName] = length;
+      }
+
+      if (propertyName == "font-size")
+      {
+        double l = double.NaN;
+        string unit = null;
+        foreach (var u in new string[] { "px", "pt", "cm", "in", "" })
+        {
+          if (length.EndsWith(u))
+          {
+            l = double.Parse(length.Substring(0, length.Length - u.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+            unit = u;
+            break;
+          }
+        }
+        switch (unit)
+        {
+          default:
+          case "px":
+            break;
+          case "pt":
+            l = l * 96 / 72.0;
+            break;
+          case "in":
+            l = l * 96;
+            break;
+          case "cm":
+            l = l * 96 / 2.54;
+            break;
+        }
+
+        localValues["font-size-absolute"] = l;
       }
     }
 
@@ -501,18 +545,46 @@ namespace HtmlToXamlDemo
             color = styleValue.Substring(startIndex, nextIndex - startIndex);
           }
         }
-        else if (styleValue.Substring(nextIndex, 3).ToLower() == "rbg")
+        else if (styleValue.Substring(nextIndex, 3).ToLower() == "rgb")
         {
+          var oldIndex = nextIndex + 3;
           //  Implement real rgb() color parsing
           while (nextIndex < styleValue.Length && styleValue[nextIndex] != ')')
           {
             nextIndex++;
           }
+
+          var rgb = new byte[3]; // default is r=0, g=0, b=0, which is black, seems to be a reasonable default
+
+          try
+          {
+            var colorValueStrings = styleValue.Substring(oldIndex, nextIndex - oldIndex).Split(new char[] { ',', '(', ')' }, System.StringSplitOptions.RemoveEmptyEntries);
+            if (colorValueStrings.Length == 3)
+            {
+              for (int i = 0; i < 3; ++i)
+              {
+                if (colorValueStrings[i].EndsWith("%"))
+                {
+                  rgb[i] = (byte)(255 * double.Parse(colorValueStrings[i].Substring(0, colorValueStrings[i].Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                  rgb[i] = (byte)int.Parse(colorValueStrings[i], System.Globalization.CultureInfo.InvariantCulture);
+                }
+              }
+            }
+          }
+          catch (Exception)
+          {
+
+          }
+
+
           if (nextIndex < styleValue.Length)
           {
             nextIndex++; // to skip ')'
           }
-          color = "gray"; // return bogus color
+          color = string.Format("#{0:X2}{1:X2}{2:X2}", rgb[0], rgb[1], rgb[2]);
         }
         else if (char.IsLetter(character))
         {
@@ -551,13 +623,13 @@ namespace HtmlToXamlDemo
       ParseCssFontVariant(styleValue, ref nextIndex, localProperties);
       ParseCssFontWeight(styleValue, ref nextIndex, localProperties);
 
-      ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size", /*mustBeNonNegative:*/true);
+      ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size", /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
 
       ParseWhiteSpace(styleValue, ref nextIndex);
       if (nextIndex < styleValue.Length && styleValue[nextIndex] == '/')
       {
         nextIndex++;
-        ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true);
+        ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
       }
 
       ParseCssFontFamily(styleValue, ref nextIndex, localProperties);
@@ -768,7 +840,7 @@ namespace HtmlToXamlDemo
           ? ParseCssColor(styleValue, ref nextIndex)
           : propertyName == "border-style"
               ? ParseCssBorderStyle(styleValue, ref nextIndex)
-              : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true);
+              : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
       if (value != null)
       {
         localProperties[propertyName + "-top"] = value;
@@ -779,7 +851,7 @@ namespace HtmlToXamlDemo
             ? ParseCssColor(styleValue, ref nextIndex)
             : propertyName == "border-style"
                 ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true);
+                : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
         if (value != null)
         {
           localProperties[propertyName + "-right"] = value;
@@ -788,7 +860,7 @@ namespace HtmlToXamlDemo
               ? ParseCssColor(styleValue, ref nextIndex)
               : propertyName == "border-style"
                   ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                  : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true);
+                  : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
           if (value != null)
           {
             localProperties[propertyName + "-bottom"] = value;
@@ -796,7 +868,7 @@ namespace HtmlToXamlDemo
                 ? ParseCssColor(styleValue, ref nextIndex)
                 : propertyName == "border-style"
                     ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                    : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true);
+                    : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
             if (value != null)
             {
               localProperties[propertyName + "-left"] = value;
