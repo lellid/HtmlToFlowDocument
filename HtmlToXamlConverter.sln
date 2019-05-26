@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HtmlToXamlConverter", "HtmlToXamlConverter\HtmlToXamlConverter.csproj", "{78070A5D-6087-41E6-8A5A-C8166E5B10F6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HtmlToXamlConverter", "HtmlToXamlConverter\HtmlToXamlConverter.csproj", "{78070A5D-6087-41E6-8A5A-C8166E5B10F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F0871134-7994-4528-A499-A14E33F0F5D5}"
+	ProjectSection(SolutionItems) = preProject
+		license.txt = license.txt
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
