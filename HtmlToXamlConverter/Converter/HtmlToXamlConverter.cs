@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Xml;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   // DependencyProperty
 

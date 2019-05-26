@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   // DependencyProperty
 

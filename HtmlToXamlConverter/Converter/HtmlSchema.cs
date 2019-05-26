@@ -4,7 +4,7 @@
 using System.Collections;
 using System.Diagnostics;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   /// <summary>
   ///     HtmlSchema class

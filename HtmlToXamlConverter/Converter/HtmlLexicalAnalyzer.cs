@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   /// <summary>
   ///     lexical analyzer class

@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   /// <summary>
   ///     HtmlToXamlConverter is a static class that takes an HTML string

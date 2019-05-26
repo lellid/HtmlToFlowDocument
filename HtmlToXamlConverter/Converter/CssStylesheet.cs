@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 
-namespace HtmlToXamlDemo
+namespace HtmlToXaml
 {
   internal class CssStylesheet
   {
