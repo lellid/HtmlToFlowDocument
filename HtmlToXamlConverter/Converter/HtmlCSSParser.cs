@@ -486,7 +486,7 @@ namespace HtmlToXaml
             rel = 1 / (0.75 * 0.75 * 0.75);
             break;
           default:
-            throw new NotImplementedException();
+            return null; // seems not to be a length!
         }
 
         return (FontSizeRoot * rel).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
