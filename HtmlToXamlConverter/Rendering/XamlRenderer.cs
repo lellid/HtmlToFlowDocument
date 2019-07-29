@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
+using HtmlToXamlConverter.Dom;
 
-namespace HtmlToXamlConverter.Dom
+namespace HtmlToXamlConverter.Rendering
 {
   public class XamlRenderer
   {
