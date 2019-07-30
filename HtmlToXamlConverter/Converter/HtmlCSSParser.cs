@@ -15,6 +15,8 @@ namespace HtmlToXaml
 
   internal static class HtmlCssParser
   {
+    private static double FontSizeRoot = 15; // Pixels
+
     private static readonly string[] Colors =
     {
             "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black", "blanchedalmond",
@@ -96,7 +98,7 @@ namespace HtmlToXaml
 
     private static readonly string[] FontRelativeSizes = { "larger", "smaller" };
 
-    private static readonly string[] FontSizeUnits = { "px", "mm", "cm", "in", "pt", "pc", "em", "ex", "%" };
+    private static readonly string[] FontSizeUnits = { "rem", "px", "mm", "cm", "in", "pt", "pc", "em", "ex", "%" };
 
     // .................................................................
     //
@@ -443,6 +445,8 @@ namespace HtmlToXaml
           nextIndex++;
         }
 
+
+
         var number = styleValue.Substring(startIndex, nextIndex - startIndex);
 
         var unit = ParseWordEnumeration(FontSizeUnits, styleValue, ref nextIndex) ?? "px";
@@ -452,6 +456,40 @@ namespace HtmlToXaml
           return "0";
         }
         return number + unit;
+
+      }
+      else if (startIndex < styleValue.Length)// size is probably some of the values medium, small, smaller etc
+      {
+        double rel = 1;
+        var v = styleValue.Substring(startIndex);
+        switch (v)
+        {
+          case "medium":
+            rel = 1;
+            break;
+          case "small":
+            rel = 0.75;
+            break;
+          case "x-small":
+            rel = 0.75 * 0.75;
+            break;
+          case "xx-small":
+            rel = 0.75 * 0.75 * 0.75;
+            break;
+          case "large":
+            rel = 1 / 0.75;
+            break;
+          case "x-large":
+            rel = 1 / (0.75 * 0.75);
+            break;
+          case "xx-large":
+            rel = 1 / (0.75 * 0.75 * 0.75);
+            break;
+          default:
+            return null; // seems not to be a length!
+        }
+
+        return (FontSizeRoot * rel).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
       }
 
       return null;
@@ -460,7 +498,12 @@ namespace HtmlToXaml
     private static string ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
     {
       var length = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative);
-      if (length != null && length.EndsWith("em"))
+      if (length != null && length.EndsWith("rem"))
+      {
+        var lenEm = double.Parse(length.Substring(0, length.Length - 3), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+        length = (lenEm * FontSizeRoot).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+      }
+      if (length != null && (length.EndsWith("em") || length.EndsWith("%")))
       {
         var lenEm = double.Parse(length.Substring(0, length.Length - 2), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
         length = (lenEm * fontSizeAbsolute).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
