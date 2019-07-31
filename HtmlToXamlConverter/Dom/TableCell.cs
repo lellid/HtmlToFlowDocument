@@ -6,9 +6,31 @@ namespace HtmlToXamlConverter.Dom
 {
   public class TableCell : TextElement
   {
-    public int ColumnSpan { get; set; } = 1;
+    int _columnSpan = 1;
+    public int ColumnSpan
+    {
+      get { return _columnSpan; }
+      set
+      {
+        if (value >= 1)
+          _columnSpan = value;
+        else
+          throw new ArgumentException("Should be >=1", nameof(ColumnSpan));
+      }
+    }
 
-    public int RowSpan { get; set; } = 1;
+    int _rowSpan = 1;
+    public int RowSpan
+    {
+      get { return _rowSpan; }
+      set
+      {
+        if (value >= 1)
+          _rowSpan = value;
+        else
+          throw new ArgumentException("Should be >=1", nameof(RowSpan));
+      }
+    }
 
     public int? BorderBrush { get; set; }
 

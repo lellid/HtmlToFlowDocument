@@ -124,7 +124,7 @@ namespace HtmlToXaml
 
       // Decide what name to use as a root
       TextElement xamlFlowDocumentElement = asFlowDocument ? (Block)new FlowDocument() : (Block)new Section();
-      xamlFlowDocumentElement.FontSize = 12; // base font size of the document
+      xamlFlowDocumentElement.FontSize = 16; // base font size of the document
 
       // Extract style definitions from all STYLE elements in the document
       CssStylesheet stylesheet = new CssStylesheet(htmlElement, cssStyleSheetProvider);
@@ -360,7 +360,7 @@ namespace HtmlToXaml
     //
     // .............................................................
 
-    private static void AddBreak(Block xamlParentElement, string htmlElementName)
+    private static void AddBreak(TextElement xamlParentElement, string htmlElementName)
     {
       // Create new xaml element corresponding to this html element
 
@@ -610,7 +610,7 @@ namespace HtmlToXaml
             break;
           case "br":
           case "hr":
-            AddBreak((Block)xamlParentElement, htmlElementName);
+            AddBreak(xamlParentElement, htmlElementName);
             break;
           default:
             if (HtmlSchema.IsInlineElement(htmlElementName) || HtmlSchema.IsBlockElement(htmlElementName))
@@ -826,7 +826,7 @@ namespace HtmlToXaml
 
 
 
-      var xamlContainerElement = xamlParentElement is Section || xamlParentElement is FlowDocument ? (TextElement)new BlockUIContainer() : (TextElement)new InlineUIContainer();
+      var xamlContainerElement = xamlParentElement is Section || xamlParentElement is FlowDocument || xamlParentElement is ListItem || xamlParentElement is TableCell ? (TextElement)new BlockUIContainer() : (TextElement)new InlineUIContainer();
       xamlContainerElement.Parent = xamlParentElement;
 
       var xamlImageElement = new Image
@@ -1126,7 +1126,7 @@ namespace HtmlToXaml
         else if (htmlChildName == "tr")
         {
           // Tbody is not present, but tr element is present. Tr is wrapped in tbody
-          var xamlTableBodyElement = new TableRowGroup();
+          var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement };
 
           // We use currentProperties of xamlTableElement when adding rows since the tbody element is artificially created and has
           // no properties of its own
@@ -1748,6 +1748,8 @@ namespace HtmlToXaml
       return columnWidthsAvailable ? tbodyWidth : 0;
     }
 
+    static int _debugCounter = 0;
+
     /// <summary>
     ///     Performs a parsing pass over a tr element to read information about column width and rowspan attributes.
     /// </summary>
@@ -1773,6 +1775,8 @@ namespace HtmlToXaml
         ArrayList activeRowSpans,
         double tableWidth, CssStylesheet stylesheet)
     {
+      ++_debugCounter;
+
       double columnWidth;
 
       // Parameter validation
@@ -1881,7 +1885,8 @@ namespace HtmlToXaml
                       activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
                       Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
                       columnIndex++;
-                      columnStart = (double)columnStarts[columnIndex];
+                      if (columnIndex < columnStarts.Count)
+                        columnStart = (double)columnStarts[columnIndex];
                     }
                   }
                   // else: the new column does not start at the same time as a pre existing column
@@ -2447,8 +2452,12 @@ namespace HtmlToXaml
     ///     returns a combination of previous context with local set of properties.
     ///     This value is not used in the current code - inntended for the future development.
     /// </returns>
-    private static Hashtable GetElementProperties(XmlElement htmlElement, Hashtable inheritedProperties,
-        out Hashtable localProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private static Hashtable GetElementProperties(
+      XmlElement htmlElement,
+      Hashtable inheritedProperties,
+      out Hashtable localProperties,
+      CssStylesheet stylesheet,
+      List<XmlElement> sourceContext)
     {
       // Start with context formatting properties
       Hashtable currentProperties = new Hashtable();

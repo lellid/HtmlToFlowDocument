@@ -464,11 +464,17 @@ namespace HtmlToXaml
         var v = styleValue.Substring(startIndex);
         switch (v)
         {
+          case "inherit":
+            rel = 1;
+            break;
           case "medium":
             rel = 1;
             break;
           case "small":
             rel = 0.75;
+            break;
+          case "smaller":
+            rel = 0.60;
             break;
           case "x-small":
             rel = 0.75 * 0.75;
