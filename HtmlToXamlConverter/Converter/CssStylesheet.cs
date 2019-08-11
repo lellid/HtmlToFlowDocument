@@ -14,10 +14,25 @@ namespace HtmlToXaml
   {
     private List<StyleDefinition> _styleDefinitions;
 
+    /// <summary>
+    /// A function that provides CSS style sheets on demand. The argument is a string that is the name of the style sheet.
+    /// The return value is the contents of the CSS style sheet with that name.
+    /// </summary>
     private Func<string, string> _cssStyleSheetProvider;
 
+    /// <summary>
+    /// The layers of style sheets.
+    /// </summary>
     private List<ExCSS.Stylesheet> _externalStyleSheets = new List<ExCSS.Stylesheet>();
-    // Constructor
+
+
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CssStylesheet"/> class.
+    /// </summary>
+    /// <param name="htmlElement">The root element of the HTML text to parse.</param>
+    /// <param name="cssStyleSheetProvider">The CSS style sheet provider. The argument of this function is a string that is the name of the style sheet.
+    /// The return value is the contents of the CSS style sheet with that name.</param>
     public CssStylesheet(XmlElement htmlElement, Func<string, string> cssStyleSheetProvider)
     {
       _cssStyleSheetProvider = cssStyleSheetProvider;
@@ -28,109 +43,68 @@ namespace HtmlToXaml
       }
     }
 
-    // Recursively traverses an html tree, discovers STYLE elements and creates a style definition table
-    // for further cascading style application
+
+    /// <summary>
+    /// Recursively traverses an html tree, discovers STYLE elements and creates a style definition table
+    /// for further cascading style application
+    /// </summary>
+    /// <param name="htmlElement">The current HTML element.</param>
     public void DiscoverStyleDefinitions(XmlElement htmlElement)
     {
-      if (htmlElement.LocalName.ToLower() == "link")
+      switch (htmlElement.LocalName.ToLower())
       {
-        if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel") == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
-        {
-          var fileName = htmlElement.GetAttribute("href");
-          var cssContent = _cssStyleSheetProvider?.Invoke(fileName);
-          if (!string.IsNullOrEmpty(cssContent))
+        case "link":
           {
-            var styleSheet = ExCSS.StylesheetParser.Default.Parse(cssContent);
+            if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel") == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
+            {
+              var fileName = htmlElement.GetAttribute("href");
+              var cssContent = _cssStyleSheetProvider?.Invoke(fileName);
+              if (!string.IsNullOrEmpty(cssContent))
+              {
+                var styleSheet = ExCSS.StylesheetParser.Default.Parse(cssContent);
+                _externalStyleSheets.Add(styleSheet);
+              }
+            }
+          }
+          break;
+
+        case "style":
+          {
+            // Add style definitions from this style.
+
+            // Collect all text from this style definition
+            var stylesheetBuffer = new StringBuilder();
+
+            for (var htmlChildNode = htmlElement.FirstChild;
+                htmlChildNode != null;
+                htmlChildNode = htmlChildNode.NextSibling)
+            {
+              if (htmlChildNode is XmlText || htmlChildNode is XmlComment)
+              {
+                stylesheetBuffer.Append(RemoveComments(htmlChildNode.Value));
+              }
+            }
+
+            var styleSheet = ExCSS.StylesheetParser.Default.Parse(stylesheetBuffer.ToString());
             _externalStyleSheets.Add(styleSheet);
           }
-        }
+          break;
 
-        return;
-        //  Add LINK elements processing for included stylesheets
-        // <LINK href="http://sc.msn.com/global/css/ptnr/orange.css" type=text/css \r\nrel=stylesheet>
-      }
-
-      if (htmlElement.LocalName.ToLower() != "style")
-      {
-        // This is not a STYLE element. Recurse into it
-        for (var htmlChildNode = htmlElement.FirstChild;
-            htmlChildNode != null;
-            htmlChildNode = htmlChildNode.NextSibling)
-        {
-          if (htmlChildNode is XmlElement)
+        default:
           {
-            DiscoverStyleDefinitions((XmlElement)htmlChildNode);
-          }
-        }
-        return;
-      }
-
-      // Add style definitions from this style.
-
-      // Collect all text from this style definition
-      var stylesheetBuffer = new StringBuilder();
-
-      for (var htmlChildNode = htmlElement.FirstChild;
-          htmlChildNode != null;
-          htmlChildNode = htmlChildNode.NextSibling)
-      {
-        if (htmlChildNode is XmlText || htmlChildNode is XmlComment)
-        {
-          stylesheetBuffer.Append(RemoveComments(htmlChildNode.Value));
-        }
-      }
-
-      // CssStylesheet has the following syntactical structure:
-      //     @import declaration;
-      //     selector { definition }
-      // where "selector" is one of: ".classname", "tagname"
-      // It can contain comments in the following form: /*...*/
-
-      var nextCharacterIndex = 0;
-      while (nextCharacterIndex < stylesheetBuffer.Length)
-      {
-        // Extract selector
-        var selectorStart = nextCharacterIndex;
-        while (nextCharacterIndex < stylesheetBuffer.Length && stylesheetBuffer[nextCharacterIndex] != '{')
-        {
-          // Skip declaration directive starting from @
-          if (stylesheetBuffer[nextCharacterIndex] == '@')
-          {
-            while (nextCharacterIndex < stylesheetBuffer.Length &&
-                   stylesheetBuffer[nextCharacterIndex] != ';')
+            // This is something else. Recurse into this element by calling this function recursively
+            for (var htmlChildNode = htmlElement.FirstChild;
+                htmlChildNode != null;
+                htmlChildNode = htmlChildNode.NextSibling)
             {
-              nextCharacterIndex++;
+              if (htmlChildNode is XmlElement)
+              {
+                DiscoverStyleDefinitions((XmlElement)htmlChildNode);
+              }
             }
-            selectorStart = nextCharacterIndex + 1;
           }
-          nextCharacterIndex++;
-        }
-
-        if (nextCharacterIndex < stylesheetBuffer.Length)
-        {
-          // Extract definition
-          var definitionStart = nextCharacterIndex;
-          while (nextCharacterIndex < stylesheetBuffer.Length && stylesheetBuffer[nextCharacterIndex] != '}')
-          {
-            nextCharacterIndex++;
-          }
-
-          // Define a style
-          if (nextCharacterIndex - definitionStart > 2)
-          {
-            AddStyleDefinition(
-                stylesheetBuffer.ToString(selectorStart, definitionStart - selectorStart),
-                stylesheetBuffer.ToString(definitionStart + 1, nextCharacterIndex - definitionStart - 2));
-          }
-
-          // Skip closing brace
-          if (nextCharacterIndex < stylesheetBuffer.Length)
-          {
-            Debug.Assert(stylesheetBuffer[nextCharacterIndex] == '}');
-            nextCharacterIndex++;
-          }
-        }
-      }
+          break;
+      } // end switch
     }
 
     // Returns a string with all c-style comments replaced by spaces
