@@ -12,7 +12,6 @@ namespace HtmlToXaml
 {
   internal class CssStylesheet
   {
-    private List<StyleDefinition> _styleDefinitions;
 
     /// <summary>
     /// A function that provides CSS style sheets on demand. The argument is a string that is the name of the style sheet.
@@ -21,9 +20,10 @@ namespace HtmlToXaml
     private Func<string, string> _cssStyleSheetProvider;
 
     /// <summary>
-    /// The layers of style sheets.
+    /// The layers of style sheets. The stylesheet with the highest priority is at the
+    /// end of this list.
     /// </summary>
-    private List<ExCSS.Stylesheet> _externalStyleSheets = new List<ExCSS.Stylesheet>();
+    private List<ExCSS.Stylesheet> _styleSheets = new List<ExCSS.Stylesheet>();
 
 
 
@@ -62,7 +62,7 @@ namespace HtmlToXaml
               if (!string.IsNullOrEmpty(cssContent))
               {
                 var styleSheet = ExCSS.StylesheetParser.Default.Parse(cssContent);
-                _externalStyleSheets.Add(styleSheet);
+                _styleSheets.Add(styleSheet);
               }
             }
           }
@@ -86,7 +86,7 @@ namespace HtmlToXaml
             }
 
             var styleSheet = ExCSS.StylesheetParser.Default.Parse(stylesheetBuffer.ToString());
-            _externalStyleSheets.Add(styleSheet);
+            _styleSheets.Add(styleSheet);
           }
           break;
 
@@ -125,60 +125,22 @@ namespace HtmlToXaml
       return text.Substring(0, commentStart) + " " + RemoveComments(text.Substring(commentEnd + 2));
     }
 
-    public void AddStyleDefinition(string selector, string definition)
-    {
-      // Notrmalize parameter values
-      selector = selector.Trim().ToLower();
-      definition = definition.Trim().ToLower();
-      if (selector.Length == 0 || definition.Length == 0)
-      {
-        return;
-      }
 
-      if (_styleDefinitions == null)
-      {
-        _styleDefinitions = new List<StyleDefinition>();
-      }
-
-      var simpleSelectors = selector.Split(',');
-
-      foreach (string t in simpleSelectors)
-      {
-        var simpleSelector = t.Trim();
-        if (simpleSelector.Length > 0)
-        {
-          _styleDefinitions.Add(new StyleDefinition(simpleSelector, definition));
-        }
-      }
-    }
-
+    /// <summary>
+    /// Get all styles that apply to the provided element as string ( individual styles are semicolon-separated).
+    /// </summary>
+    /// <param name="elementName">Name of the element.</param>
+    /// <param name="sourceContext">The source context.</param>
+    /// <returns>All styles that apply to the provided element as string ( individual styles are semicolon-separated).</returns>
     public string GetStyle(string elementName, List<XmlElement> sourceContext)
     {
       Debug.Assert(sourceContext.Count > 0);
       Debug.Assert(elementName == sourceContext[sourceContext.Count - 1].LocalName);
 
-      //  Add id processing for style selectors
-      if (_styleDefinitions != null)
+
+      for (int i = _styleSheets.Count - 1; i >= 0; --i) // in reverse order because highest priority stylesheet is at the end of the lit
       {
-        for (var i = _styleDefinitions.Count - 1; i >= 0; i--)
-        {
-          var selector = _styleDefinitions[i].Selector;
-
-          var selectorLevels = selector.Split(' ');
-
-          var indexInSelector = selectorLevels.Length - 1;
-          var indexInContext = sourceContext.Count - 1;
-          var selectorLevel = selectorLevels[indexInSelector].Trim();
-
-          if (MatchSelectorLevel(selectorLevel, sourceContext[sourceContext.Count - 1]))
-          {
-            return _styleDefinitions[i].Definition;
-          }
-        }
-      }
-
-      foreach (var styleSheet in _externalStyleSheets)
-      {
+        var styleSheet = _styleSheets[i];
         foreach (var rule in styleSheet.Rules.OfType<ExCSS.StyleRule>())
         {
           var selector = rule.SelectorText;
@@ -193,7 +155,7 @@ namespace HtmlToXaml
             var ruleText = rule.Text;
 
             var idx = ruleText.IndexOf("{");
-            if (idx >= 0)
+            if (idx >= 0) // Strip off curly braces if ruleText is enclosed in them
             {
               ruleText = ruleText.Substring(idx + 1);
               ruleText = ruleText.TrimEnd();
@@ -208,6 +170,13 @@ namespace HtmlToXaml
       return null;
     }
 
+    /// <summary>
+    /// Determines if the selectorLevel applies to a given <paramref name="xmlElement"/> by analyzing the selectorLevel and then
+    /// comparing it to either the local name of the <paramref name="xmlElement"/>, its 'id' attribute, or its 'class' attribute.
+    /// </summary>
+    /// <param name="selectorLevel">The selector level.</param>
+    /// <param name="xmlElement">The XML element.</param>
+    /// <returns>True if the <paramref name="selectorLevel"/> applies to the <paramref name="xmlElement"/>; otherwise, False.</returns>
     private bool MatchSelectorLevel(string selectorLevel, XmlElement xmlElement)
     {
       if (selectorLevel.Length == 0)
@@ -258,18 +227,6 @@ namespace HtmlToXaml
       }
 
       return true;
-    }
-
-    private class StyleDefinition
-    {
-      public readonly string Definition;
-      public readonly string Selector;
-
-      public StyleDefinition(string selector, string definition)
-      {
-        Selector = selector;
-        Definition = definition;
-      }
     }
   }
 }
