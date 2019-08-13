@@ -18,17 +18,44 @@ namespace HtmlToXamlConverter.Rendering
     /// </value>
     public bool InvertColors { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
+    /// This will of course increase the memory footprint, because the DOM elements then could not be reclaimed by the garbage collector.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if DOM elements should be attached as tags to the UI elements; otherwise, <c>false</c>.
+    /// </value>
+    public bool AttachDomAsTags { get; set; }
 
+
+    /// <summary>
+    /// Renders the specified DOM flow document into a Wpf flow document.
+    /// </summary>
+    /// <param name="flowDocument">The DOM flow document to render.</param>
+    /// <returns></returns>
     public swd.FlowDocument Render(FlowDocument flowDocument)
     {
       return (swd.FlowDocument)RenderRecursively(flowDocument);
     }
 
+    /// <summary>
+    /// Renders the specified DOM section into a Wpf section
+    /// </summary>
+    /// <param name="section">The DOM section to render.</param>
+    /// <returns></returns>
     public swd.Section Render(Section section)
     {
       return (swd.Section)RenderRecursively(section);
     }
 
+    /// <summary>
+    /// Renders DOM text elements recursively, i.e. including their childs.
+    /// </summary>
+    /// <param name="e">The root DOM text element.</param>
+    /// <returns>The corresponding Wpf element.</returns>
+    /// <exception cref="System.InvalidOperationException">
+    /// </exception>
+    /// <exception cref="System.NotImplementedException"></exception>
     public object RenderRecursively(TextElement e)
     {
       object wpf = null;
@@ -315,12 +342,16 @@ namespace HtmlToXamlConverter.Rendering
         }
       }
 
+      if (AttachDomAsTags)
+      {
+        if (wpf is System.Windows.FrameworkContentElement conEle)
+          conEle.Tag = e;
+        else if (wpf is System.Windows.FrameworkElement uiEle)
+          uiEle.Tag = e;
+      }
+
       return wpf;
     }
-
-
-
-
 
     #region Conversion helper
 

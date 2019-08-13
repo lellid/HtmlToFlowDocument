@@ -6,6 +6,8 @@ namespace HtmlToXamlConverter.Dom
 {
   public abstract class TextElement
   {
+    public object Tag { get; set; }
+
     public TextElement Parent { get; set; }
 
     public string FontFamily { get; set; }
@@ -19,6 +21,7 @@ namespace HtmlToXamlConverter.Dom
     public int? Foreground { get; set; }
 
     public int? Background { get; set; }
+
 
     /// <summary>
     /// Gets a value indicating whether this instance has local properties set.
