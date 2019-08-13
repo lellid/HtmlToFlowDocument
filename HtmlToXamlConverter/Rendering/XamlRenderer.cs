@@ -11,7 +11,7 @@ namespace HtmlToXamlConverter.Rendering
     private static readonly string XamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 
 
-    public void RenderToXaml(TextElement rootElement, System.IO.Stream stream)
+    public void Render(TextElement rootElement, System.IO.Stream stream)
     {
 
       XmlWriterSettings settings = new XmlWriterSettings
@@ -23,13 +23,13 @@ namespace HtmlToXamlConverter.Rendering
       {
         writer.WriteStartDocument();
 
-        RenderToXaml(rootElement, writer);
+        Render(rootElement, writer);
 
         writer.WriteEndDocument();
       }
     }
 
-    public void RenderToXaml(TextElement e, XmlWriter wr)
+    public void Render(TextElement e, XmlWriter wr)
     {
       // Render TextElement properties
 
@@ -107,7 +107,14 @@ namespace HtmlToXamlConverter.Rendering
         case Hyperlink hl:
           if (!string.IsNullOrEmpty(hl.NavigateUri))
           {
-            wr.WriteAttributeString("NavigateUri", hl.NavigateUri);
+            if (Uri.IsWellFormedUriString(hl.NavigateUri, UriKind.RelativeOrAbsolute))
+            {
+              wr.WriteAttributeString("NavigateUri", hl.NavigateUri);
+            }
+            else
+            {
+
+            }
           }
           if (!string.IsNullOrEmpty(hl.TargetName))
           {
@@ -171,12 +178,12 @@ namespace HtmlToXamlConverter.Rendering
       {
         if (tab.Columns.Count > 0)
         {
-          wr.WriteStartElement("TableColumns");
+          wr.WriteStartElement("Table.Columns");
           foreach (var c in tab.Columns)
           {
+            wr.WriteStartElement("TableColumn");
             if (c.Width.HasValue)
               wr.WriteAttributeString("Width", XmlConvert.ToString(c.Width.Value));
-            wr.WriteStartElement("TableColumn");
             wr.WriteEndElement();
           }
           wr.WriteEndElement();
@@ -184,7 +191,7 @@ namespace HtmlToXamlConverter.Rendering
 
         foreach (var child in e.Childs)
         {
-          RenderToXaml(child, wr);
+          Render(child, wr);
         }
 
 
@@ -194,7 +201,7 @@ namespace HtmlToXamlConverter.Rendering
         // now, render all children
         foreach (var child in e.Childs)
         {
-          RenderToXaml(child, wr);
+          Render(child, wr);
         }
 
       }
