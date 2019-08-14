@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
-using HtmlToXamlConverter.Dom;
+using HtmlToFlowDocument.Dom;
 
-namespace HtmlToXamlConverter.Rendering
+namespace HtmlToFlowDocument.Rendering
 {
   public class XamlRenderer
   {

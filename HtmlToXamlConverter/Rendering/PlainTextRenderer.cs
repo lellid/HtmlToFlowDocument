@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using HtmlToXamlConverter.Dom;
+using HtmlToFlowDocument.Dom;
 
-namespace HtmlToXamlConverter.Rendering
+namespace HtmlToFlowDocument.Rendering
 {
   /// <summary>
   /// Used to render the Dom tree into plain text.

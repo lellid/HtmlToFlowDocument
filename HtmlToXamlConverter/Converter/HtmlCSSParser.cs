@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml;
 
-namespace HtmlToXaml
+namespace HtmlToFlowDocument
 {
   // DependencyProperty
 

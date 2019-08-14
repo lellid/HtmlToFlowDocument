@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace HtmlToXamlConverter.Dom
+namespace HtmlToFlowDocument.Dom
 {
   public class List : Block
   {

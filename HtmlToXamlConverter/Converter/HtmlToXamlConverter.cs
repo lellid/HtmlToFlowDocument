@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Xml;
-using HtmlToXamlConverter.Dom;
+using HtmlToFlowDocument.Dom;
 
-namespace HtmlToXaml
+namespace HtmlToFlowDocument
 {
   // DependencyProperty
 
