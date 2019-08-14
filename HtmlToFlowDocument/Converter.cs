@@ -110,7 +110,7 @@ namespace HtmlToFlowDocument
     #region Internal Methods
 
     /// <summary>
-    ///     Converts an html string into xaml string.
+    ///     Converts an Html string into Xaml string.
     /// </summary>
     /// <param name="htmlString">
     ///     Input html which may be badly formated xml.
@@ -123,7 +123,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     Well-formed xml representing XAML equivalent for the input html string.
     /// </returns>
-    public TextElement ConvertHtmlToXaml(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
+    public TextElement Convert(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
     {
       // Create well-formed Xml from Html string
       XmlElement htmlElement = HtmlParser.ParseHtml(htmlString);
