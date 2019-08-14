@@ -216,12 +216,12 @@ namespace HtmlToFlowDocument
         return false;
       }
 
-      if (selectorId != null && HtmlToXamlConverter.GetAttribute(xmlElement, "id") != selectorId)
+      if (selectorId != null && Converter.GetAttribute(xmlElement, "id") != selectorId)
       {
         return false;
       }
 
-      if (selectorClass != null && HtmlToXamlConverter.GetAttribute(xmlElement, "class") != selectorClass)
+      if (selectorClass != null && Converter.GetAttribute(xmlElement, "class") != selectorClass)
       {
         return false;
       }

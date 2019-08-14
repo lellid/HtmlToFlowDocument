@@ -11,13 +11,12 @@ using HtmlToFlowDocument.Dom;
 
 namespace HtmlToFlowDocument
 {
-  // DependencyProperty
-
-  // TextElement
-
-  /// <summary>Converts HTML to a DOM model, that can then converted to a XAML representation of a FlowDocument, directly to a FlowDocument, or to
-  /// other representations such as plain text.</summary>
-  public static class HtmlToXamlConverter
+  /// <summary>
+  /// Converts HTML to a DOM model,
+  /// that can then be converted e.g. to a XAML representation of a FlowDocument, or directly to a FlowDocument, or to
+  /// another representation such as plain text.
+  /// </summary>
+  public static class Converter
   {
     // ----------------------------------------------------------------
     //

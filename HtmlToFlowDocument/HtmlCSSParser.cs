@@ -193,7 +193,7 @@ namespace HtmlToFlowDocument
     {
       var styleFromStylesheet = stylesheet.GetStyle(elementName, sourceContext);
 
-      var styleInline = HtmlToXamlConverter.GetAttribute(htmlElement, "style");
+      var styleInline = Converter.GetAttribute(htmlElement, "style");
 
       // Combine styles from stylesheet and from inline attribute.
       // The order is important - the latter styles will override the former.
@@ -215,7 +215,7 @@ namespace HtmlToFlowDocument
           if (styleNameValue.Length == 2)
           {
             var styleName = styleNameValue[0].Trim().ToLower();
-            var styleValue = HtmlToXamlConverter.UnQuote(styleNameValue[1].Trim()).ToLower();
+            var styleValue = Converter.UnQuote(styleNameValue[1].Trim()).ToLower();
             var nextIndex = 0;
 
             switch (styleName)
