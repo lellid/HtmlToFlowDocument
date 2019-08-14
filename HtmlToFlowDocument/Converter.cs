@@ -16,7 +16,7 @@ namespace HtmlToFlowDocument
   /// that can then be converted e.g. to a XAML representation of a FlowDocument, or directly to a FlowDocument, or to
   /// another representation such as plain text.
   /// </summary>
-  public static class Converter
+  public class Converter
   {
     // ----------------------------------------------------------------
     //
@@ -99,7 +99,7 @@ namespace HtmlToFlowDocument
     /// <value>
     ///   <c>true</c> if DOM elements should be attached as tags to the UI elements; otherwise, <c>false</c>.
     /// </value>
-    public static bool AttachSourceAsTags { get; set; }
+    public bool AttachSourceAsTags { get; set; }
 
     // ---------------------------------------------------------------------
     //
@@ -123,7 +123,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     Well-formed xml representing XAML equivalent for the input html string.
     /// </returns>
-    public static TextElement ConvertHtmlToXaml(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
+    public TextElement ConvertHtmlToXaml(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
     {
       // Create well-formed Xml from Html string
       XmlElement htmlElement = HtmlParser.ParseHtml(htmlString);
@@ -234,7 +234,7 @@ namespace HtmlToFlowDocument
     ///     it could one of its following siblings.
     ///     The caller must use this node to get to next sibling from it.
     /// </returns>
-    private static XmlNode AddBlock(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
+    private XmlNode AddBlock(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       if (htmlNode is XmlComment)
@@ -402,7 +402,7 @@ namespace HtmlToFlowDocument
     /// <param name="sourceContext"></param>
     /// true indicates that a content added by this call contains at least one block element
     /// </param>
-    private static void AddSection(TextElement xamlParentElement, XmlElement htmlElement,
+    private void AddSection(TextElement xamlParentElement, XmlElement htmlElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -483,7 +483,7 @@ namespace HtmlToFlowDocument
     /// <param name="sourceContext"></param>
     /// true indicates that a content added by this call contains at least one block element
     /// </param>
-    private static void AddParagraph(TextElement xamlParentElement, XmlElement htmlElement,
+    private void AddParagraph(TextElement xamlParentElement, XmlElement htmlElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -528,7 +528,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     The last htmlNode added to the implicit paragraph
     /// </returns>
-    private static XmlNode AddImplicitParagraph(TextElement xamlParentElement, XmlNode htmlNode,
+    private XmlNode AddImplicitParagraph(TextElement xamlParentElement, XmlNode htmlNode,
         Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // Collect all non-block elements and wrap them into implicit Paragraph
@@ -581,7 +581,7 @@ namespace HtmlToFlowDocument
     //
     // .............................................................
 
-    private static void AddInline(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
+    private void AddInline(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       if (htmlNode is XmlComment)
@@ -638,7 +638,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private static void AddSpanOrRun(TextElement xamlParentElement, XmlElement htmlElement,
+    private void AddSpanOrRun(TextElement xamlParentElement, XmlElement htmlElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -714,7 +714,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private static void AddHyperlink(TextElement xamlParentElement, XmlElement htmlElement,
+    private void AddHyperlink(TextElement xamlParentElement, XmlElement htmlElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -821,7 +821,7 @@ namespace HtmlToFlowDocument
     //
     // .............................................................
 
-    private static void AddImage(TextElement xamlParentElement, XmlElement htmlElement, Hashtable inheritedProperties,
+    private void AddImage(TextElement xamlParentElement, XmlElement htmlElement, Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // test if htmlElement has a src attribute, otherwise we can skip over this
@@ -870,7 +870,7 @@ namespace HtmlToFlowDocument
     /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
-    private static void AddList(TextElement xamlParentElement, XmlElement htmlListElement,
+    private void AddList(TextElement xamlParentElement, XmlElement htmlListElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -935,7 +935,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     XmlNode representing the first non-li node in the input after one or more li's have been processed.
     /// </returns>
-    private static XmlElement AddOrphanListItems(TextElement xamlParentElement, XmlElement htmlLiElement,
+    private XmlElement AddOrphanListItems(TextElement xamlParentElement, XmlElement htmlLiElement,
         Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       Debug.Assert(htmlLiElement.LocalName.ToLower() == "li");
@@ -988,7 +988,7 @@ namespace HtmlToFlowDocument
     /// <param name="inheritedProperties">
     ///     Properties inherited from parent context
     /// </param>
-    private static void AddListItem(List xamlListElement, XmlElement htmlLiElement,
+    private void AddListItem(List xamlListElement, XmlElement htmlLiElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -1038,7 +1038,7 @@ namespace HtmlToFlowDocument
     /// <param name="inheritedProperties">
     ///     Hashtable representing properties inherited from parent context.
     /// </param>
-    private static void AddTable(TextElement xamlParentElement, XmlElement htmlTableElement,
+    private void AddTable(TextElement xamlParentElement, XmlElement htmlTableElement,
         Hashtable inheritedProperties,
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
@@ -1098,7 +1098,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private static XmlNode ProcessTableChildNode(CssStylesheet stylesheet, List<XmlElement> sourceContext, Hashtable currentProperties, Table xamlTableElement, ArrayList columnStarts, XmlNode htmlChildNode)
+    private XmlNode ProcessTableChildNode(CssStylesheet stylesheet, List<XmlElement> sourceContext, Hashtable currentProperties, Table xamlTableElement, ArrayList columnStarts, XmlNode htmlChildNode)
     {
       while (htmlChildNode != null)
       {
@@ -1384,7 +1384,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     XmlNode representing the current position of the iterator among tr elements
     /// </returns>
-    private static XmlNode AddTableRowsToTableBody(TableRowGroup xamlTableBodyElement, XmlNode htmlTrStartNode,
+    private XmlNode AddTableRowsToTableBody(TableRowGroup xamlTableBodyElement, XmlNode htmlTrStartNode,
         Hashtable currentProperties, ArrayList columnStarts, CssStylesheet stylesheet,
         List<XmlElement> sourceContext)
     {
@@ -1470,7 +1470,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     XmlElement representing the current position of the iterator among the children of the parent Html tbody/tr element
     /// </returns>
-    private static XmlNode AddTableCellsToTableRow(TableRow xamlTableRowElement, XmlNode htmlTdStartNode,
+    private XmlNode AddTableCellsToTableRow(TableRow xamlTableRowElement, XmlNode htmlTdStartNode,
         Hashtable currentProperties, ArrayList columnStarts, ArrayList activeRowSpans, CssStylesheet stylesheet,
         List<XmlElement> sourceContext)
     {
@@ -1575,7 +1575,7 @@ namespace HtmlToFlowDocument
     /// <param name="currentProperties">
     ///     Current properties for the html td/th element corresponding to xamlTableCellElement
     /// </param>
-    private static void AddDataToTableCell(TableCell xamlTableCellElement, XmlNode htmlDataStartNode,
+    private void AddDataToTableCell(TableCell xamlTableCellElement, XmlNode htmlDataStartNode,
         Hashtable currentProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // Parameter validation
