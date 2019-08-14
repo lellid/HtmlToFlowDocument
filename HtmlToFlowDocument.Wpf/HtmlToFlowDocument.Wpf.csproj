@@ -2,12 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net471</TargetFramework>
     <UseWPF>true</UseWPF>
-    <RootNamespace>HtmlToXamlConverter</RootNamespace>
+    <RootNamespace>HtmlToFlowDocument</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HtmlToXamlConverter\HtmlToXamlConverter.csproj" />
+    <ProjectReference Include="..\HtmlToFlowDocument\HtmlToFlowDocument.csproj" />
   </ItemGroup>
 </Project>

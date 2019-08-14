@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using HtmlToXamlConverter.Dom;
+using HtmlToFlowDocument.Dom;
 using swd = System.Windows.Documents;
 
-namespace HtmlToXamlConverter.Rendering
+namespace HtmlToFlowDocument.Rendering
 {
   public class WpfRenderer
   {
