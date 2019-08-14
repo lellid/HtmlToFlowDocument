@@ -15,10 +15,8 @@ namespace HtmlToXaml
 
   // TextElement
 
-  /// <summary>
-  ///     HtmlToXamlConverter is a static class that takes an HTML string
-  ///     and converts it into XAML
-  /// </summary>
+  /// <summary>Converts HTML to a DOM model, that can then converted to a XAML representation of a FlowDocument, directly to a FlowDocument, or to
+  /// other representations such as plain text.</summary>
   public static class HtmlToXamlConverter
   {
     // ----------------------------------------------------------------
@@ -95,6 +93,15 @@ namespace HtmlToXaml
 
     #endregion Private Fields
 
+    /// <summary>
+    /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
+    /// This will of course increase the memory footprint, because the DOM elements then could not be reclaimed by the garbage collector.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if DOM elements should be attached as tags to the UI elements; otherwise, <c>false</c>.
+    /// </value>
+    public static bool AttachSourceAsTags { get; set; }
+
     // ---------------------------------------------------------------------
     //
     // Internal Methods
@@ -125,6 +132,8 @@ namespace HtmlToXaml
       // Decide what name to use as a root
       TextElement xamlFlowDocumentElement = asFlowDocument ? (Block)new FlowDocument() : (Block)new Section();
       xamlFlowDocumentElement.FontSize = 16; // base font size of the document
+      if (AttachSourceAsTags)
+      { xamlFlowDocumentElement.Tag = htmlElement; }
 
       // Extract style definitions from all STYLE elements in the document
       CssStylesheet stylesheet = new CssStylesheet(htmlElement, cssStyleSheetProvider);
@@ -431,7 +440,7 @@ namespace HtmlToXaml
             sourceContext);
 
         // Create a XAML element corresponding to this html element
-        TextElement xamlElement = new Section() { Parent = xamlParentElement };
+        TextElement xamlElement = new Section() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
         ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/true);
 
         // Decide whether we can unwrap this element as not having any formatting significance.
@@ -485,7 +494,7 @@ namespace HtmlToXaml
           sourceContext);
 
       // Create a XAML element corresponding to this html element
-      Block xamlElement = new Paragraph() { Parent = xamlParentElement };
+      Block xamlElement = new Paragraph() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
       ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/true);
 
       // Recurse into element subtree
@@ -524,7 +533,7 @@ namespace HtmlToXaml
         Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // Collect all non-block elements and wrap them into implicit Paragraph
-      Block xamlParagraph = new Paragraph() { Parent = xamlParentElement };
+      Block xamlParagraph = new Paragraph() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlNode : null };
       XmlNode lastNodeProcessed = null;
       while (htmlNode != null)
       {
@@ -653,6 +662,7 @@ namespace HtmlToXaml
 
       var xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
       xamlElement.Parent = xamlParentElement;
+      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
       // Create currentProperties as a compilation of local and inheritedProperties, set localProperties
       Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
@@ -724,7 +734,7 @@ namespace HtmlToXaml
             sourceContext);
 
         // Create a XAML element corresponding to this html element
-        var xamlElement = new Hyperlink() { Parent = xamlParentElement };
+        var xamlElement = new Hyperlink() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
         ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/false);
 
         string[] hrefParts = href.Split('#');
@@ -831,7 +841,8 @@ namespace HtmlToXaml
 
       var xamlImageElement = new Image
       {
-        Source = imageSource
+        Source = imageSource,
+        Tag = AttachSourceAsTags ? htmlElement : null
       };
 
       xamlContainerElement.AppendChild(xamlImageElement); // put the image in the container
@@ -873,6 +884,7 @@ namespace HtmlToXaml
       var xamlListElement = new List()
       {
         Parent = xamlParentElement,
+        Tag = AttachSourceAsTags ? htmlListElement : null,
         MarkerStyle = htmlListElementName == "ol" ? ListMarkerStyle.Decimal : ListMarkerStyle.Disc
       };
 
@@ -942,7 +954,7 @@ namespace HtmlToXaml
       else
       {
         // No list element near. Create our own.
-        xamlListElement = new List();
+        xamlListElement = new List() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlLiElement : null };
         xamlParentElement.AppendChild(xamlListElement);
       }
 
@@ -991,7 +1003,7 @@ namespace HtmlToXaml
       Hashtable currentProperties = GetElementProperties(htmlLiElement, inheritedProperties, out Hashtable localProperties,
           stylesheet, sourceContext);
 
-      var xamlListItemElement = new ListItem() { Parent = xamlListElement };
+      var xamlListItemElement = new ListItem() { Parent = xamlListElement, Tag = AttachSourceAsTags ? htmlLiElement : null };
 
       // TODO: process local properties for li element
 
@@ -1066,7 +1078,7 @@ namespace HtmlToXaml
       else
       {
         // Create xamlTableElement
-        var xamlTableElement = new Table() { Parent = xamlParentElement };
+        var xamlTableElement = new Table() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlTableElement : null };
 
         // Analyze table structure for column widths and rowspan attributes
         ArrayList columnStarts = AnalyzeTableStructure(htmlTableElement, stylesheet);
@@ -1097,7 +1109,7 @@ namespace HtmlToXaml
         if (htmlChildName == "tbody" || htmlChildName == "thead" || htmlChildName == "tfoot")
         {
           //  Add more special processing for TableHeader and TableFooter
-          var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement };
+          var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
 
           sourceContext.Add((XmlElement)htmlChildNode);
@@ -1126,7 +1138,7 @@ namespace HtmlToXaml
         else if (htmlChildName == "tr")
         {
           // Tbody is not present, but tr element is present. Tr is wrapped in tbody
-          var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement };
+          var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           // We use currentProperties of xamlTableElement when adding rows since the tbody element is artificially created and has
           // no properties of its own
@@ -1394,7 +1406,7 @@ namespace HtmlToXaml
       {
         if (htmlChildNode.LocalName.ToLower() == "tr")
         {
-          var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement };
+          var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           sourceContext.Add((XmlElement)htmlChildNode);
 
@@ -1421,7 +1433,7 @@ namespace HtmlToXaml
         else if (htmlChildNode.LocalName.ToLower() == "td")
         {
           // Tr element is not present. We create one and add td elements to it
-          var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement };
+          var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           // This is incorrect formatting and the column starts should not be set in this case
           Debug.Assert(columnStarts == null);
@@ -1483,7 +1495,7 @@ namespace HtmlToXaml
       {
         if (htmlChildNode.LocalName.ToLower() == "td" || htmlChildNode.LocalName.ToLower() == "th")
         {
-          var xamlTableCellElement = new TableCell() { Parent = xamlTableRowElement };
+          var xamlTableCellElement = new TableCell() { Parent = xamlTableRowElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           sourceContext.Add((XmlElement)htmlChildNode);
 
