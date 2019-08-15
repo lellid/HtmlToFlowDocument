@@ -15,7 +15,7 @@ namespace HtmlToFlowDocument
 
   internal static class HtmlCssParser
   {
-    private static double FontSizeRoot = 15; // Pixels
+    private static double FontSizeRoot = 16; // Pixels
 
     private static readonly string[] Colors =
     {
@@ -53,7 +53,7 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS font Property
+    // Parsing CSS font Property
     //
     // .................................................................
 
@@ -102,7 +102,7 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS list-style Property
+    // Parsing CSS list-style Property
     //
     // .................................................................
 
@@ -125,7 +125,7 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS text-transform Property
+    // Parsing CSS text-transform Property
     //
     // .................................................................
 
@@ -151,7 +151,7 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS float Property
+    // Parsing CSS float Property
     //
     // .................................................................
 
@@ -227,8 +227,7 @@ namespace HtmlToFlowDocument
                 ParseCssFontFamily(styleValue, ref nextIndex, localProperties);
                 break;
               case "font-size":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size",
-                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
               case "font-style":
                 ParseCssFontStyle(styleValue, ref nextIndex, localProperties);
@@ -240,8 +239,7 @@ namespace HtmlToFlowDocument
                 ParseCssFontVariant(styleValue, ref nextIndex, localProperties);
                 break;
               case "line-height":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height",
-                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
               case "word-spacing":
                 //  Implement word-spacing conversion
@@ -276,14 +274,12 @@ namespace HtmlToFlowDocument
                 ParseCssVerticalAlign(styleValue, ref nextIndex, localProperties);
                 break;
               case "text-indent":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, "text-indent",
-                    /*mustBeNonNegative:*/false, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, "text-indent", /*mustBeNonNegative:*/false, (double)localProperties["font-size"]);
                 break;
 
               case "width":
               case "height":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
 
               case "margin": // top/right/bottom/left
@@ -293,8 +289,7 @@ namespace HtmlToFlowDocument
               case "margin-right":
               case "margin-bottom":
               case "margin-left":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
 
               case "padding":
@@ -304,8 +299,7 @@ namespace HtmlToFlowDocument
               case "padding-right":
               case "padding-bottom":
               case "padding-left":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName,
-                    /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ParseCssSize(styleValue, ref nextIndex, localProperties, styleName, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
 
               case "border":
@@ -425,13 +419,20 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private static string ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative)
+    /// <summary>
+    /// Parses the size in CSS format.
+    /// </summary>
+    /// <param name="styleValue">The string to parse.</param>
+    /// <param name="nextIndex">At the call, the index into the string to parse. At the end, the next index to parse.</param>
+    /// <param name="mustBeNonNegative">if set to <c>true</c>, the value must be non-negative].</param>
+    /// <returns>The value and the unit of the parsed CSS size. If parsing was not possible, the tuple (null, null) is returned.</returns>
+    public static (double? Value, string Unit) ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative)
     {
       ParseWhiteSpace(styleValue, ref nextIndex);
 
       var startIndex = nextIndex;
 
-      // Parse optional munis sign
+      // Parse optional minus sign
       if (nextIndex < styleValue.Length && styleValue[nextIndex] == '-')
       {
         nextIndex++;
@@ -444,123 +445,118 @@ namespace HtmlToFlowDocument
         {
           nextIndex++;
         }
-
-
-
         var number = styleValue.Substring(startIndex, nextIndex - startIndex);
 
         var unit = ParseWordEnumeration(FontSizeUnits, styleValue, ref nextIndex) ?? "px";
 
         if (mustBeNonNegative && styleValue[startIndex] == '-')
         {
-          return "0";
+          return (0, unit);
         }
-        return number + unit;
 
+        if (double.TryParse(number, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+          return (value, unit);
+        else
+          return (null, null);
       }
       else if (startIndex < styleValue.Length)// size is probably some of the values medium, small, smaller etc
       {
-        double rel = 1;
-        var v = styleValue.Substring(startIndex);
+        var v = styleValue.Substring(startIndex).ToLower();
         switch (v)
         {
           case "inherit":
-            rel = 1;
-            break;
+            return (1, "em");
           case "medium":
-            rel = 1;
-            break;
+            return (16, "px");
           case "small":
-            rel = 0.75;
-            break;
+            return (12, "px");
           case "smaller":
-            rel = 0.60;
-            break;
+            return (12 / 16.0, "em");
           case "x-small":
-            rel = 0.75 * 0.75;
-            break;
+            return (10, "px");
           case "xx-small":
-            rel = 0.75 * 0.75 * 0.75;
-            break;
+            return (8, "px");
           case "large":
-            rel = 1 / 0.75;
-            break;
+            return (18, "px");
           case "x-large":
-            rel = 1 / (0.75 * 0.75);
-            break;
+            return (20, "px");
           case "xx-large":
-            rel = 1 / (0.75 * 0.75 * 0.75);
-            break;
+            return (22, "px");
           default:
-            return null; // seems not to be a length!
+            return (null, null); // seems not to be a length!
         }
-
-        return (FontSizeRoot * rel).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
       }
 
-      return null;
+      return (null, null);
     }
 
-    private static string ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
+    /// <summary>
+    /// Parses the CSS size, and then calculates the absolute size in px. 1 px is assumed to be 1/96th inch.
+    /// </summary>
+    /// <param name="styleValue">The string to parse.</param>
+    /// <param name="nextIndex">At the call, the index into the string to parse. At the end, the next index to parse.</param>
+    /// <param name="mustBeNonNegative">if set to <c>true</c>, the value must be non-negative].</param>
+    /// <param name="fontSizeAbsolute">The absolute font size of the parent element in px.</param>
+    /// <returns>A value in px, if the parsing was successful. Otherwise, the return value is null.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static double? ParseCssSizeInPx(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
     {
-      var length = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative);
-      if (length != null && length.EndsWith("rem"))
+      var (value, unit) = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative);
+      if (unit == null || value == null)
+        return null;
+
+      switch (unit)
       {
-        var lenEm = double.Parse(length.Substring(0, length.Length - 3), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
-        length = (lenEm * FontSizeRoot).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+        case "em":
+          return value.Value * fontSizeAbsolute;
+        case "px":
+          return value.Value;
+        case "%":
+          return value.Value * fontSizeAbsolute / 100;
+        case "rem":
+          return value.Value * fontSizeAbsolute;
+        case "mm":
+          return value.Value * (96 / 25.4);
+        case "cm":
+          return value.Value * (96 / 2.54);
+        case "in":
+          return value.Value * (96);
+        case "pt":
+          return value.Value * (96 / 72.0);
+        case "pc":
+          return value.Value * (6 * 96);
+        case "ex":
+          return value.Value * fontSizeAbsolute * 0.4; // Height of the letter "x"
+        default:
+          throw new NotImplementedException();
       }
-      if (length != null && (length.EndsWith("em") || length.EndsWith("%")))
-      {
-        var lenEm = double.Parse(length.Substring(0, length.Length - 2), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
-        length = (lenEm * fontSizeAbsolute).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
-      }
-      return length;
     }
 
-    private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues,
-    string propertyName,
-    bool mustBeNonNegative, double fontSizeAbsolute)
+    /// <summary>
+    /// Parses the size, and stores the value in the dictionary of local values, using the key <paramref name="propertyName"/>.
+    /// </summary>
+    /// <param name="styleValue">The string to parse.</param>
+    /// <param name="nextIndex">At the call, the index into the string to parse. At the end, the next index to parse.</param>
+    /// <param name="localValues">The dictionary of local values.</param>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <param name="mustBeNonNegative">if set to <c>true</c> [must be non negative].</param>
+    /// <param name="fontSizeAbsolute">The font size absolute.</param>
+    private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName, bool mustBeNonNegative, double fontSizeAbsolute)
     {
-      var length = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
+      var length = ParseCssSizeInPx(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
       if (length != null)
       {
         localValues[propertyName] = length;
       }
-
-      if (propertyName == "font-size")
-      {
-        double l = double.NaN;
-        string unit = null;
-        foreach (var u in new string[] { "px", "pt", "cm", "in", "" })
-        {
-          if (length.EndsWith(u))
-          {
-            l = double.Parse(length.Substring(0, length.Length - u.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
-            unit = u;
-            break;
-          }
-        }
-        switch (unit)
-        {
-          default:
-          case "px":
-            break;
-          case "pt":
-            l = l * 96 / 72.0;
-            break;
-          case "in":
-            l = l * 96;
-            break;
-          case "cm":
-            l = l * 96 / 2.54;
-            break;
-        }
-
-        localValues["font-size-absolute"] = l;
-      }
     }
 
-    private static string ParseCssColor(string styleValue, ref int nextIndex)
+    /// <summary>
+    /// Parses a color string, and if the conversion was successful, returns the color in RGBA format (a being the LSB).
+    /// </summary>
+    /// <param name="styleValue">The style value.</param>
+    /// <param name="nextIndex">Index of the next.</param>
+    /// <returns>If parsing was sucessful, the color in RGBA format; otherwise, null.</returns>
+    private static int? ParseCssColor(string styleValue, ref int nextIndex)
     {
       //  Implement color parsing
       // rgb(100%,53.5%,10%)
@@ -594,67 +590,38 @@ namespace HtmlToFlowDocument
             color = styleValue.Substring(startIndex, nextIndex - startIndex);
           }
         }
-        else if (styleValue.Substring(nextIndex, 3).ToLower() == "rgb")
+        else if ((nextIndex + 3) < styleValue.Length && styleValue.Substring(nextIndex, 3).ToLower() == "rgb")
         {
-          var oldIndex = nextIndex + 3;
-          //  Implement real rgb() color parsing
           while (nextIndex < styleValue.Length && styleValue[nextIndex] != ')')
           {
             nextIndex++;
           }
-
-          var rgb = new byte[3]; // default is r=0, g=0, b=0, which is black, seems to be a reasonable default
-
-          try
-          {
-            var colorValueStrings = styleValue.Substring(oldIndex, nextIndex - oldIndex).Split(new char[] { ',', '(', ')' }, System.StringSplitOptions.RemoveEmptyEntries);
-            if (colorValueStrings.Length == 3)
-            {
-              for (int i = 0; i < 3; ++i)
-              {
-                if (colorValueStrings[i].EndsWith("%"))
-                {
-                  rgb[i] = (byte)(255 * double.Parse(colorValueStrings[i].Substring(0, colorValueStrings[i].Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture));
-                }
-                else
-                {
-                  rgb[i] = (byte)int.Parse(colorValueStrings[i], System.Globalization.CultureInfo.InvariantCulture);
-                }
-              }
-            }
-          }
-          catch (Exception)
-          {
-
-          }
-
-
-          if (nextIndex < styleValue.Length)
-          {
-            nextIndex++; // to skip ')'
-          }
-          color = string.Format("#{0:X2}{1:X2}{2:X2}", rgb[0], rgb[1], rgb[2]);
+          color = styleValue.Substring(startIndex, nextIndex - startIndex);
         }
         else if (char.IsLetter(character))
         {
-          color = ParseWordEnumeration(Colors, styleValue, ref nextIndex);
-          if (color == null)
+          while (nextIndex < styleValue.Length && char.IsLetter(styleValue[nextIndex]))
           {
-            color = ParseWordEnumeration(SystemColors, styleValue, ref nextIndex);
-            if (color != null)
-            {
-              //  Implement smarter system color converions into real colors
-              color = "black";
-            }
+            nextIndex++;
           }
+          color = styleValue.Substring(startIndex, nextIndex - startIndex);
         }
       }
 
-      return color;
+      if (null != color)
+        return Dom.PropertyExtensions.GetColor(color);
+      else
+        return null;
     }
 
-    private static void ParseCssColor(string styleValue, ref int nextIndex, Hashtable localValues,
-        string propertyName)
+    /// <summary>
+    /// Parses a color, and stores its value in the dictionary of local values, using the key <paramref name="propertyName"/>.
+    /// </summary>
+    /// <param name="styleValue">The style value.</param>
+    /// <param name="nextIndex">Index of the next.</param>
+    /// <param name="localValues">The local values.</param>
+    /// <param name="propertyName">Name of the property.</param>
+    private static void ParseCssColor(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName)
     {
       var color = ParseCssColor(styleValue, ref nextIndex);
       if (color != null)
@@ -672,13 +639,13 @@ namespace HtmlToFlowDocument
       ParseCssFontVariant(styleValue, ref nextIndex, localProperties);
       ParseCssFontWeight(styleValue, ref nextIndex, localProperties);
 
-      ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size", /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+      ParseCssSize(styleValue, ref nextIndex, localProperties, "font-size", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
 
       ParseWhiteSpace(styleValue, ref nextIndex);
       if (nextIndex < styleValue.Length && styleValue[nextIndex] == '/')
       {
         nextIndex++;
-        ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+        ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
       }
 
       ParseCssFontFamily(styleValue, ref nextIndex, localProperties);
@@ -869,11 +836,26 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS margin and padding Properties
+    // Parsing CSS margin and padding Properties
     //
     // .................................................................
 
     // Generic method for parsing any of four-values properties, such as margin, padding, border-width, border-style, border-color
+
+    /// <summary>
+    /// Generic method for parsing any of four-values properties, such as margin, padding, border-width, border-style, border-color.
+    /// </summary>
+    /// <param name="styleValue">The style value.</param>
+    /// <param name="nextIndex">Index of the next.</param>
+    /// <param name="localProperties">The dictionary of local properties.</param>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <returns>True if at least one value could be parsed (which then applies to all sides); otherwise, false.</returns>
+    /// <remarks>
+    ///  CSS Spec:
+    /// If only one value is set, then the value applies to all four sides;
+    /// If two or three values are set, then missinng value(s) are taken fromm the opposite side(s).
+    /// The order they are applied is: top/right/bottom/left
+    /// </remarks>
     private static bool ParseCssRectangleProperty(string styleValue, ref int nextIndex, Hashtable localProperties,
         string propertyName)
     {
@@ -886,40 +868,47 @@ namespace HtmlToFlowDocument
                    propertyName == "border-style" || propertyName == "border-color");
 
       var value = propertyName == "border-color"
-          ? ParseCssColor(styleValue, ref nextIndex)
+          ? (object)ParseCssColor(styleValue, ref nextIndex)
           : propertyName == "border-style"
-              ? ParseCssBorderStyle(styleValue, ref nextIndex)
-              : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+              ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
+              : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
       if (value != null)
       {
+        // if a first value could be found, then set all 4 sides, and continue parsing
         localProperties[propertyName + "-top"] = value;
         localProperties[propertyName + "-bottom"] = value;
         localProperties[propertyName + "-right"] = value;
         localProperties[propertyName + "-left"] = value;
+
+
         value = propertyName == "border-color"
-            ? ParseCssColor(styleValue, ref nextIndex)
+            ? (object)ParseCssColor(styleValue, ref nextIndex)
             : propertyName == "border-style"
-                ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
+                : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
         if (value != null)
         {
+          // if a second value could be found, set the right and left property, and continue parsing
           localProperties[propertyName + "-right"] = value;
           localProperties[propertyName + "-left"] = value;
+
           value = propertyName == "border-color"
-              ? ParseCssColor(styleValue, ref nextIndex)
+              ? (object)ParseCssColor(styleValue, ref nextIndex)
               : propertyName == "border-style"
-                  ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                  : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                  ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
+                  : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
           if (value != null)
           {
+            // if a third value could be found, set only the bottom property, and continue parsing
             localProperties[propertyName + "-bottom"] = value;
             value = propertyName == "border-color"
-                ? ParseCssColor(styleValue, ref nextIndex)
+                ? (object)ParseCssColor(styleValue, ref nextIndex)
                 : propertyName == "border-style"
-                    ? ParseCssBorderStyle(styleValue, ref nextIndex)
-                    : ParseCssSize(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size-absolute"]);
+                    ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
+                    : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
             if (value != null)
             {
+              // if a value could be found, set the remaining left property
               localProperties[propertyName + "-left"] = value;
             }
           }
@@ -933,7 +922,7 @@ namespace HtmlToFlowDocument
 
     // .................................................................
     //
-    // Pasring CSS border Properties
+    // Parsing CSS border Properties
     //
     // .................................................................
 

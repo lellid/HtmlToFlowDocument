@@ -619,5 +619,21 @@ namespace HtmlToFlowDocument.Dom
       return l.HasValue || r.HasValue || t.HasValue || b.HasValue ? (Thickness?)result : null;
     }
 
+    public static Thickness? GetThickness(double? left, double? right, double? top, double? bottom)
+    {
+      var result = new Thickness();
+
+      if (left.HasValue)
+        result.Left = left.Value;
+      if (right.HasValue)
+        result.Right = right.Value;
+      if (top.HasValue)
+        result.Top = top.Value;
+      if (bottom.HasValue)
+        result.Bottom = bottom.Value;
+
+      return left.HasValue || right.HasValue || top.HasValue || bottom.HasValue ? (Thickness?)result : null;
+    }
+
   }
 }

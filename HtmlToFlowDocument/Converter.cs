@@ -64,13 +64,13 @@ namespace HtmlToFlowDocument
     public const string XamlBrushesBlack = "Black";
     public const string XamlFontFamily = "FontFamily";
     public const string XamlFontSize = "FontSize";
-    public const string XamlFontSizeXxLarge = "22pt"; // "XXLarge";
-    public const string XamlFontSizeXLarge = "20pt"; // "XLarge";
-    public const string XamlFontSizeLarge = "18pt"; // "Large";
-    public const string XamlFontSizeMedium = "16pt"; // "Medium";
-    public const string XamlFontSizeSmall = "12pt"; // "Small";
-    public const string XamlFontSizeXSmall = "10pt"; // "XSmall";
-    public const string XamlFontSizeXxSmall = "8pt"; // "XXSmall";
+    public const double XamlFontSizeXxLarge = 22; // "XXLarge";
+    public const double XamlFontSizeXLarge = 20; // "XLarge";
+    public const double XamlFontSizeLarge = 18; // "Large";
+    public const double XamlFontSizeMedium = 16; // "Medium";
+    public const double XamlFontSizeSmall = 12; // "Small";
+    public const double XamlFontSizeXSmall = 10; // "XSmall";
+    public const double XamlFontSizeXxSmall = 8; // "XXSmall";
     public const string XamlFontWeight = "FontWeight";
     public const string XamlFontWeightBold = "Bold";
     public const string XamlFontStyle = "FontStyle";
@@ -145,7 +145,7 @@ namespace HtmlToFlowDocument
 
       // convert root html element
       var inheritedProperties = new Hashtable();
-      inheritedProperties.Add("font-size-absolute", 12.0);
+      inheritedProperties.Add("font-size", XamlFontSizeMedium);
       AddBlock(xamlFlowDocumentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
 
       // In case if the selected fragment is inline, extract it into a separate Span wrapper
@@ -2190,24 +2190,24 @@ namespace HtmlToFlowDocument
     private static void ApplyLocalProperties(TextElement xamlElement, Hashtable localProperties, bool isBlock)
     {
       bool marginSet = false;
-      string marginTop = "0";
-      string marginBottom = "0";
-      string marginLeft = "0";
-      string marginRight = "0";
+      double? marginTop = 0;
+      double? marginBottom = 0;
+      double? marginLeft = 0;
+      double? marginRight = 0;
 
       bool paddingSet = false;
-      string paddingTop = "0";
-      string paddingBottom = "0";
-      string paddingLeft = "0";
-      string paddingRight = "0";
+      double? paddingTop = 0;
+      double? paddingBottom = 0;
+      double? paddingLeft = 0;
+      double? paddingRight = 0;
 
-      string borderColor = null;
+      int? borderColor = null;
 
       bool borderThicknessSet = false;
-      string borderThicknessTop = "0";
-      string borderThicknessBottom = "0";
-      string borderThicknessLeft = "0";
-      string borderThicknessRight = "0";
+      double? borderThicknessTop = 0;
+      double? borderThicknessBottom = 0;
+      double? borderThicknessLeft = 0;
+      double? borderThicknessRight = 0;
 
       IDictionaryEnumerator propertyEnumerator = localProperties.GetEnumerator();
       while (propertyEnumerator.MoveNext())
@@ -2229,13 +2229,13 @@ namespace HtmlToFlowDocument
             break;
           case "font-size":
             //  Convert from css size into FontSize
-            xamlElement.FontSize = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
+            xamlElement.FontSize = (double?)propertyEnumerator.Value;
             break;
           case "color":
-            xamlElement.Foreground = PropertyExtensions.GetColor((string)propertyEnumerator.Value);
+            xamlElement.Foreground = (int?)propertyEnumerator.Value;
             break;
           case "background-color":
-            xamlElement.Background = PropertyExtensions.GetColor((string)propertyEnumerator.Value);
+            xamlElement.Background = (int?)propertyEnumerator.Value;
             break;
           case "text-decoration-underline":
             if (xamlElement is Paragraph pa)
@@ -2264,13 +2264,12 @@ namespace HtmlToFlowDocument
               {
                 // Section does not support indent-> instead we use margin
 
-                var val = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
-
+                var val = (double?)propertyEnumerator.Value;
                 s.Margin = s.Margin == null ? new Thickness { Left = val ?? 0 } : s.Margin.Value.WithLeft(s.Margin.Value.Left + val ?? 0);
               }
               else if (xamlElement is Paragraph p)
               {
-                p.TextIndent = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
+                p.TextIndent = (double?)propertyEnumerator.Value;
               }
             }
             break;
@@ -2289,51 +2288,51 @@ namespace HtmlToFlowDocument
 
           case "margin-top":
             marginSet = true;
-            marginTop = (string)propertyEnumerator.Value;
+            marginTop = (double?)propertyEnumerator.Value;
             break;
           case "margin-right":
             marginSet = true;
-            marginRight = (string)propertyEnumerator.Value;
+            marginRight = (double?)propertyEnumerator.Value;
             break;
           case "margin-bottom":
             marginSet = true;
-            marginBottom = (string)propertyEnumerator.Value;
+            marginBottom = (double?)propertyEnumerator.Value;
             break;
           case "margin-left":
             marginSet = true;
-            marginLeft = (string)propertyEnumerator.Value;
+            marginLeft = (double?)propertyEnumerator.Value;
             break;
 
           case "padding-top":
             paddingSet = true;
-            paddingTop = (string)propertyEnumerator.Value;
+            paddingTop = (double?)propertyEnumerator.Value;
             break;
           case "padding-right":
             paddingSet = true;
-            paddingRight = (string)propertyEnumerator.Value;
+            paddingRight = (double?)propertyEnumerator.Value;
             break;
           case "padding-bottom":
             paddingSet = true;
-            paddingBottom = (string)propertyEnumerator.Value;
+            paddingBottom = (double?)propertyEnumerator.Value;
             break;
           case "padding-left":
             paddingSet = true;
-            paddingLeft = (string)propertyEnumerator.Value;
+            paddingLeft = (double?)propertyEnumerator.Value;
             break;
 
           // NOTE: css names for elementary border styles have side indications in the middle (top/bottom/left/right)
           // In our internal notation we intentionally put them at the end - to unify processing in ParseCssRectangleProperty method
           case "border-color-top":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = (int?)propertyEnumerator.Value;
             break;
           case "border-color-right":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = (int?)propertyEnumerator.Value;
             break;
           case "border-color-bottom":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = (int?)propertyEnumerator.Value;
             break;
           case "border-color-left":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = (int?)propertyEnumerator.Value;
             break;
           case "border-style-top":
           case "border-style-right":
@@ -2343,19 +2342,19 @@ namespace HtmlToFlowDocument
             break;
           case "border-width-top":
             borderThicknessSet = true;
-            borderThicknessTop = (string)propertyEnumerator.Value;
+            borderThicknessTop = (double?)propertyEnumerator.Value;
             break;
           case "border-width-right":
             borderThicknessSet = true;
-            borderThicknessRight = (string)propertyEnumerator.Value;
+            borderThicknessRight = (double?)propertyEnumerator.Value;
             break;
           case "border-width-bottom":
             borderThicknessSet = true;
-            borderThicknessBottom = (string)propertyEnumerator.Value;
+            borderThicknessBottom = (double?)propertyEnumerator.Value;
             break;
           case "border-width-left":
             borderThicknessSet = true;
-            borderThicknessLeft = (string)propertyEnumerator.Value;
+            borderThicknessLeft = (double?)propertyEnumerator.Value;
             break;
 
           case "list-style-type":
@@ -2419,23 +2418,23 @@ namespace HtmlToFlowDocument
       {
         if (marginSet)
         {
-          b.Margin = PropertyExtensions.GetThickness(marginLeft, marginRight, marginTop, marginBottom, b.FontSizeLocalOrInherited.Value);
+          b.Margin = PropertyExtensions.GetThickness(left: marginLeft, right: marginRight, top: marginTop, bottom: marginBottom);
         }
 
         if (paddingSet)
         {
-          b.Padding = PropertyExtensions.GetThickness(paddingLeft, paddingRight, paddingTop, paddingBottom, b.FontSizeLocalOrInherited.Value);
+          b.Padding = PropertyExtensions.GetThickness(left: paddingLeft, right: paddingRight, top: paddingTop, bottom: paddingBottom);
         }
 
         if (borderColor != null)
         {
           //  We currently ignore possible difference in brush colors on different border sides. Use the last colored side mentioned
-          b.BorderBrush = PropertyExtensions.GetColor(borderColor);
+          b.BorderBrush = borderColor;
         }
 
         if (borderThicknessSet)
         {
-          b.BorderThickness = PropertyExtensions.GetThickness(borderThicknessLeft, borderThicknessRight, borderThicknessTop, borderThicknessBottom, b.FontSizeLocalOrInherited.Value);
+          b.BorderThickness = PropertyExtensions.GetThickness(left: borderThicknessLeft, right: borderThicknessRight, top: borderThicknessTop, bottom: borderThicknessBottom);
         }
       }
     }
@@ -2485,7 +2484,7 @@ namespace HtmlToFlowDocument
       // update current formatting properties depending on element tag
 
       localProperties = new Hashtable();
-      localProperties["font-size-absolute"] = inheritedProperties["font-size-absolute"];
+      localProperties["font-size"] = inheritedProperties["font-size"];
       switch (elementName)
       {
         // Character formatting
@@ -2522,7 +2521,7 @@ namespace HtmlToFlowDocument
             {
               fontSize = 1000.0;
             }
-            localProperties["font-size"] = fontSize.ToString(CultureInfo.InvariantCulture);
+            localProperties["font-size"] = fontSize;
           }
           attributeValue = GetAttribute(htmlElement, "color");
           if (attributeValue != null)
@@ -2560,7 +2559,7 @@ namespace HtmlToFlowDocument
           localProperties["text-align"] = "Left";
           break;
         case "blockquote":
-          localProperties["margin-left"] = "16";
+          localProperties["margin-left"] = XamlFontSizeMedium;
           break;
 
         case "h1":
