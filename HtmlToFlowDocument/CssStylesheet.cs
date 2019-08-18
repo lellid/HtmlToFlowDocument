@@ -10,14 +10,21 @@ using System.Xml;
 
 namespace HtmlToFlowDocument
 {
-  internal class CssStylesheet
+  public class CssStylesheet
   {
 
     /// <summary>
-    /// A function that provides CSS style sheets on demand. The argument is a string that is the name of the style sheet.
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
     /// The return value is the contents of the CSS style sheet with that name.
     /// </summary>
-    private Func<string, string> _cssStyleSheetProvider;
+    private Func<string, string, string> _cssStyleSheetProvider;
+
+    /// <summary>
+    /// File name of the HTML file which is parsed. The name is used to get the absolute name of the CSS style sheet, since often they are referenced with relative name only.
+    /// </summary>
+    private string _htmlFileName;
 
     /// <summary>
     /// The layers of style sheets. The stylesheet with the highest priority is at the
@@ -31,11 +38,14 @@ namespace HtmlToFlowDocument
     /// Initializes a new instance of the <see cref="CssStylesheet"/> class.
     /// </summary>
     /// <param name="htmlElement">The root element of the HTML text to parse.</param>
-    /// <param name="cssStyleSheetProvider">The CSS style sheet provider. The argument of this function is a string that is the name of the style sheet.
+    /// <param name="cssStyleSheetProvider">The CSS style sheet provider.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
     /// The return value is the contents of the CSS style sheet with that name.</param>
-    public CssStylesheet(XmlElement htmlElement, Func<string, string> cssStyleSheetProvider)
+    public CssStylesheet(XmlElement htmlElement, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
     {
       _cssStyleSheetProvider = cssStyleSheetProvider;
+      _htmlFileName = htmlFileName;
 
       if (htmlElement != null)
       {
@@ -58,7 +68,7 @@ namespace HtmlToFlowDocument
             if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel") == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
             {
               var fileName = htmlElement.GetAttribute("href");
-              var cssContent = _cssStyleSheetProvider?.Invoke(fileName);
+              var cssContent = _cssStyleSheetProvider?.Invoke(fileName, _htmlFileName);
               if (!string.IsNullOrEmpty(cssContent))
               {
                 var styleSheet = ExCSS.StylesheetParser.Default.Parse(cssContent);
@@ -227,6 +237,21 @@ namespace HtmlToFlowDocument
       }
 
       return true;
+    }
+
+    public static string GetAbsoluteCssFileName(string cssFileName, string htmlFileName)
+    {
+      int idx = htmlFileName.LastIndexOf("/");
+      var path = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
+
+      while (cssFileName.StartsWith("../"))
+      {
+        idx = path.LastIndexOf("/");
+        path = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
+        cssFileName = cssFileName.Substring(3);
+      }
+
+      return string.IsNullOrEmpty(path) ? cssFileName : path + "/" + cssFileName;
     }
   }
 }

@@ -120,10 +120,16 @@ namespace HtmlToFlowDocument
     ///     false means that Section or Span elements will be used
     ///     dependeing on StartFragment/EndFragment comments locations.
     /// </param>
+    /// <param name="cssStyleSheetProvider">
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
+    /// The return value is the contents of the CSS style sheet with that name.
+    /// </param>
     /// <returns>
     ///     Well-formed xml representing XAML equivalent for the input html string.
     /// </returns>
-    public TextElement Convert(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
+    public TextElement Convert(string htmlString, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
     {
       // Create well-formed Xml from Html string
       XmlElement htmlElement = HtmlParser.ParseHtml(htmlString);
@@ -135,7 +141,7 @@ namespace HtmlToFlowDocument
       { xamlFlowDocumentElement.Tag = htmlElement; }
 
       // Extract style definitions from all STYLE elements in the document
-      CssStylesheet stylesheet = new CssStylesheet(htmlElement, cssStyleSheetProvider);
+      CssStylesheet stylesheet = new CssStylesheet(htmlElement, cssStyleSheetProvider, htmlFileName);
 
       // Source context is a stack of all elements - ancestors of a parentElement
       List<XmlElement> sourceContext = new List<XmlElement>(10);
