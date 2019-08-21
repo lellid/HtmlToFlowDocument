@@ -686,8 +686,10 @@ namespace HtmlToFlowDocument
 
       // Add the new element to the parent.
 
-
-      xamlParentElement.AppendChild(xamlElement);
+      if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
+        xamlParentElement.AppendChild(xamlElement);
+      else if (xamlElement is Span span && 0 != span.Childs.Count)
+        xamlParentElement.AppendChild(xamlElement);
 
     }
 

@@ -19,6 +19,22 @@ namespace HtmlToFlowDocument.Rendering
     public bool InvertColors { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether text in a run should be split into separate Runs, each containing one word.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if text in a run should be split into separate Runs, each containing one word; otherwise, <c>false</c>.
+    /// </value>
+    public bool SplitIntoWords { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether text in a run should be split into separate Runs, each containing one sentence.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if text in a run should be split into separate Runs, each containing one sentence; otherwise, <c>false</c>.
+    /// </value>
+    public bool SplitIntoSentences { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
     /// This will of course increase the memory footprint, because the DOM elements then could not be reclaimed by the garbage collector.
     /// </summary>
@@ -144,8 +160,12 @@ namespace HtmlToFlowDocument.Rendering
           break;
         case Run run:
           {
-            var rune = new swd.Run { Text = run.Text };
-            wpf = rune;
+            if (SplitIntoWords)
+              wpf = CreateTextElement_SeparateWords(run.Text);
+            else if (SplitIntoSentences)
+              wpf = CreateTextElement_SeparateSentences(run.Text);
+            else
+              wpf = new swd.Run(run.Text);
           }
           break;
         case Section s:
@@ -352,6 +372,123 @@ namespace HtmlToFlowDocument.Rendering
 
       return wpf;
     }
+
+
+    private object CreateTextElement_SeparateSentences(string text)
+    {
+      if (SplitIntoSentences)
+      {
+        int prevIdx = 0;
+        List<int> list = null;
+
+        int numberOfWords = 0;
+        bool inWord = false;
+
+        for (int i = 0; i < text.Length; ++i)
+        {
+          char c = text[i];
+          if (char.IsWhiteSpace(text[i]))
+          {
+            inWord = false;
+          }
+          else
+          {
+            if (!inWord)
+            {
+              ++numberOfWords;
+            }
+            inWord = true;
+          }
+
+          if (c == '.' || c == '!' || c == '?')
+          {
+            if (numberOfWords > 2 || (i - prevIdx) >= 4)
+            {
+              if (null == list)
+              {
+                list = new List<int>(text.Length / 5);
+                list.Add(0);
+              }
+              list.Add(i + 1);
+              prevIdx = i + 1;
+            }
+          }
+        }
+        if (null != list)
+        {
+          list.Add(text.Length);
+
+          var span = new swd.Span();
+          for (int i = 1; i < list.Count; ++i)
+          {
+            span.Inlines.Add(new swd.Run(text.Substring(list[i - 1], list[i] - list[i - 1])));
+          }
+          return span;
+        }
+        else
+        {
+          return new swd.Run(text);
+        }
+      }
+      else
+      {
+        return new swd.Run(text);
+      }
+    }
+
+    private object CreateTextElement_SeparateWords(string text)
+    {
+      var span = new swd.Span();
+      int prevIdx = 0;
+      int numberOfWords = 0;
+      bool inWord = false;
+      swd.Run previousRun = null;
+
+      int i;
+      for (i = 0; i < text.Length; ++i)
+      {
+        if (char.IsWhiteSpace(text[i]))
+        {
+          inWord = false;
+        }
+        else
+        {
+          if (!inWord)
+          {
+            ++numberOfWords;
+            if (null != previousRun)
+            {
+              span.Inlines.Add(previousRun);
+              previousRun = null;
+            }
+            if (i > prevIdx)
+            {
+              previousRun = new swd.Run(text.Substring(prevIdx, i - prevIdx));
+            }
+
+            prevIdx = i;
+          }
+          inWord = true;
+        }
+      }
+      if (null != previousRun)
+      {
+        span.Inlines.Add(previousRun);
+        previousRun = null;
+      }
+      if (i > prevIdx)
+      {
+        previousRun = new swd.Run(text.Substring(prevIdx, i - prevIdx));
+        span.Inlines.Add(previousRun);
+      }
+
+      if (span.Inlines.Count > 0)
+        return span;
+      else
+        return previousRun ?? throw new InvalidOperationException();
+
+    }
+
 
     #region Conversion helper
 
