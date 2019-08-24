@@ -360,7 +360,7 @@ namespace HtmlToFlowDocument
         }
 
         // Remove the element from the stack
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
 
@@ -639,7 +639,7 @@ namespace HtmlToFlowDocument
         // Ignore all other elements non-(block/inline/image)
 
         // Remove the element from the stack
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
     }
@@ -911,7 +911,7 @@ namespace HtmlToFlowDocument
           sourceContext.Add((XmlElement)htmlChildNode);
           AddListItem(xamlListElement, (XmlElement)htmlChildNode, currentProperties, stylesheet,
               sourceContext);
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
         }
       }
@@ -946,7 +946,7 @@ namespace HtmlToFlowDocument
     private XmlElement AddOrphanListItems(TextElement xamlParentElement, XmlElement htmlLiElement,
         Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
-      Debug.Assert(htmlLiElement.LocalName.ToLower() == "li");
+      DebugAssert(htmlLiElement.LocalName.ToLower() == "li");
 
       XmlElement lastProcessedListItemElement = null;
 
@@ -1001,11 +1001,11 @@ namespace HtmlToFlowDocument
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // Parameter validation
-      Debug.Assert(xamlListElement != null);
+      DebugAssert(xamlListElement != null);
 
-      Debug.Assert(htmlLiElement != null);
-      Debug.Assert(htmlLiElement.LocalName.ToLower() == "li");
-      Debug.Assert(inheritedProperties != null);
+      DebugAssert(htmlLiElement != null);
+      DebugAssert(htmlLiElement.LocalName.ToLower() == "li");
+      DebugAssert(inheritedProperties != null);
 
       Hashtable currentProperties = GetElementProperties(htmlLiElement, inheritedProperties, out Hashtable localProperties,
           stylesheet, sourceContext);
@@ -1051,9 +1051,9 @@ namespace HtmlToFlowDocument
         CssStylesheet stylesheet, List<XmlElement> sourceContext)
     {
       // Parameter validation
-      Debug.Assert(htmlTableElement.LocalName.ToLower() == "table");
-      Debug.Assert(xamlParentElement != null);
-      Debug.Assert(inheritedProperties != null);
+      DebugAssert(htmlTableElement.LocalName.ToLower() == "table");
+      DebugAssert(xamlParentElement != null);
+      DebugAssert(inheritedProperties != null);
 
       // Create current properties to be used by children as inherited properties, set local properties
       Hashtable currentProperties = GetElementProperties(htmlTableElement, inheritedProperties,
@@ -1079,7 +1079,7 @@ namespace HtmlToFlowDocument
               sourceContext);
         }
 
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == singleCell);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == singleCell);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
       else
@@ -1137,7 +1137,7 @@ namespace HtmlToFlowDocument
             // else: if there is no TRs in this TBody, we simply ignore it
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           htmlChildNode = htmlChildNode.NextSibling;
@@ -1165,7 +1165,7 @@ namespace HtmlToFlowDocument
           // Make a recursive call
           ProcessTableChildNode(stylesheet, sourceContext, currentProperties, xamlTableElement, columnStarts, htmlChildNode.FirstChild);
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
           htmlChildNode = htmlChildNode.NextSibling;
 
@@ -1398,14 +1398,14 @@ namespace HtmlToFlowDocument
     {
       // Parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
 
       // Initialize child node for iteratimg through children to the first tr element
       XmlNode htmlChildNode = htmlTrStartNode;
-      ArrayList activeRowSpans = null;
+      List<int> activeRowSpans = null;
       if (columnStarts != null)
       {
-        activeRowSpans = new ArrayList();
+        activeRowSpans = new List<int>();
         InitializeActiveRowSpans(activeRowSpans, columnStarts.Count);
       }
 
@@ -1431,7 +1431,7 @@ namespace HtmlToFlowDocument
             xamlTableBodyElement.AppendChild(xamlTableRowElement);
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           // Advance
@@ -1443,7 +1443,7 @@ namespace HtmlToFlowDocument
           var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           // This is incorrect formatting and the column starts should not be set in this case
-          Debug.Assert(columnStarts == null);
+          DebugAssert(columnStarts == null);
 
           htmlChildNode = AddTableCellsToTableRow(xamlTableRowElement, htmlChildNode, currentProperties,
               columnStarts,
@@ -1479,15 +1479,15 @@ namespace HtmlToFlowDocument
     ///     XmlElement representing the current position of the iterator among the children of the parent Html tbody/tr element
     /// </returns>
     private XmlNode AddTableCellsToTableRow(TableRow xamlTableRowElement, XmlNode htmlTdStartNode,
-        Hashtable currentProperties, ArrayList columnStarts, ArrayList activeRowSpans, CssStylesheet stylesheet,
+        Hashtable currentProperties, ArrayList columnStarts, List<int> activeRowSpans, CssStylesheet stylesheet,
         List<XmlElement> sourceContext)
     {
       // parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
       if (columnStarts != null)
       {
-        Debug.Assert(activeRowSpans.Count == columnStarts.Count);
+        DebugAssert(activeRowSpans.Count == columnStarts.Count);
       }
 
       XmlNode htmlChildNode = htmlTdStartNode;
@@ -1516,22 +1516,22 @@ namespace HtmlToFlowDocument
 
           if (columnStarts != null)
           {
-            Debug.Assert(columnIndex < columnStarts.Count);
+            DebugAssert(columnIndex < columnStarts.Count);
             while (columnIndex < activeRowSpans.Count && (int)activeRowSpans[columnIndex] > 0)
             {
               activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-              Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+              DebugAssert((int)activeRowSpans[columnIndex] >= 0);
               columnIndex++;
             }
-            Debug.Assert(columnIndex < columnStarts.Count);
+            DebugAssert(columnIndex < columnStarts.Count);
             columnStart = (double)columnStarts[columnIndex];
             columnWidth = GetColumnWidth((XmlElement)htmlChildNode);
             columnSpan = CalculateColumnSpan(columnIndex, columnWidth, columnStarts);
             int rowSpan = GetRowSpan((XmlElement)htmlChildNode);
 
             // Column cannot have no span
-            Debug.Assert(columnSpan >= 0);
-            Debug.Assert(columnIndex + columnSpan <= columnStarts.Count);
+            DebugAssert(columnSpan >= 0);
+            DebugAssert(columnIndex + columnSpan <= columnStarts.Count);
 
             xamlTableCellElement.ColumnSpan = columnSpan;
 
@@ -1540,9 +1540,9 @@ namespace HtmlToFlowDocument
                 spannedColumnIndex < columnIndex + columnSpan;
                 spannedColumnIndex++)
             {
-              Debug.Assert(spannedColumnIndex < activeRowSpans.Count);
+              DebugAssert(spannedColumnIndex < activeRowSpans.Count);
               activeRowSpans[spannedColumnIndex] = (rowSpan - 1);
-              Debug.Assert((int)activeRowSpans[spannedColumnIndex] >= 0);
+              DebugAssert((int)activeRowSpans[spannedColumnIndex] >= 0);
             }
 
             columnIndex = columnIndex + columnSpan;
@@ -1556,7 +1556,7 @@ namespace HtmlToFlowDocument
             xamlTableRowElement.AppendChild(xamlTableCellElement);
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           htmlChildNode = htmlChildNode.NextSibling;
@@ -1568,6 +1568,16 @@ namespace HtmlToFlowDocument
           htmlChildNode = htmlChildNode.NextSibling;
         }
       }
+
+      // decrement all active row spans to the right of the last column
+      if (null != activeRowSpans)
+      {
+        for (int i = columnIndex; i < activeRowSpans.Count; ++i)
+        {
+          activeRowSpans[i] = Math.Max(activeRowSpans[i] - 1, 0);
+        }
+      }
+
       return htmlChildNode;
     }
 
@@ -1588,7 +1598,7 @@ namespace HtmlToFlowDocument
     {
       // Parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
 
       for (XmlNode htmlChildNode = htmlDataStartNode;
           htmlChildNode != null;
@@ -1616,7 +1626,7 @@ namespace HtmlToFlowDocument
     private static ArrayList AnalyzeTableStructure(XmlElement htmlTableElement, CssStylesheet stylesheet)
     {
       // Parameter validation
-      Debug.Assert(htmlTableElement.LocalName.ToLower() == "table");
+      DebugAssert(htmlTableElement.LocalName.ToLower() == "table");
       if (!htmlTableElement.HasChildNodes)
       {
         return null;
@@ -1626,7 +1636,7 @@ namespace HtmlToFlowDocument
 
       ArrayList columnStarts = new ArrayList();
       ArrayList activeRowSpans = new ArrayList();
-      Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+      DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
       XmlNode htmlChildNode = htmlTableElement.FirstChild;
       double tableWidth = 0; // Keep track of table width which is the width of its widest row
@@ -1634,7 +1644,7 @@ namespace HtmlToFlowDocument
       // Analyze tbody and tr elements
       while (htmlChildNode != null && columnWidthsAvailable)
       {
-        Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+        DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
         switch (htmlChildNode.LocalName.ToLower())
         {
@@ -1722,8 +1732,8 @@ namespace HtmlToFlowDocument
         ArrayList activeRowSpans, double tableWidth, CssStylesheet stylesheet)
     {
       // Parameter validation
-      Debug.Assert(htmlTbodyElement.LocalName.ToLower() == "tbody");
-      Debug.Assert(columnStarts != null);
+      DebugAssert(htmlTbodyElement.LocalName.ToLower() == "tbody");
+      DebugAssert(columnStarts != null);
 
       double tbodyWidth = 0;
       bool columnWidthsAvailable = true;
@@ -1799,10 +1809,10 @@ namespace HtmlToFlowDocument
       double columnWidth;
 
       // Parameter validation
-      Debug.Assert(htmlTrElement.LocalName.ToLower() == "tr");
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(activeRowSpans != null);
-      Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+      DebugAssert(htmlTrElement.LocalName.ToLower() == "tr");
+      DebugAssert(columnStarts != null);
+      DebugAssert(activeRowSpans != null);
+      DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
       if (!htmlTrElement.HasChildNodes)
       {
@@ -1819,14 +1829,14 @@ namespace HtmlToFlowDocument
       // Skip spanned columns to get to real column start
       if (columnIndex < activeRowSpans.Count)
       {
-        Debug.Assert((double)columnStarts[columnIndex] >= columnStart);
+        DebugAssert((double)columnStarts[columnIndex] >= columnStart);
         if ((double)columnStarts[columnIndex] == columnStart)
         {
           // The new column may be in a spanned area
           while (columnIndex < activeRowSpans.Count && (int)activeRowSpans[columnIndex] > 0)
           {
             activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-            Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+            DebugAssert((int)activeRowSpans[columnIndex] >= 0);
             columnIndex++;
             columnStart = (double)columnStarts[columnIndex];
           }
@@ -1835,17 +1845,17 @@ namespace HtmlToFlowDocument
 
       while (htmlChildNode != null && columnWidthsAvailable)
       {
-        Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+        DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
         VerifyColumnStartsAscendingOrder(columnStarts);
 
         switch (htmlChildNode.LocalName.ToLower())
         {
           case "td":
-            Debug.Assert(columnIndex <= columnStarts.Count);
+            DebugAssert(columnIndex <= columnStarts.Count);
             if (columnIndex < columnStarts.Count)
             {
-              Debug.Assert(columnStart <= (double)columnStarts[columnIndex]);
+              DebugAssert(columnStart <= (double)columnStarts[columnIndex]);
               if (columnStart < (double)columnStarts[columnIndex])
               {
                 columnStarts.Insert(columnIndex, columnStart);
@@ -1876,7 +1886,7 @@ namespace HtmlToFlowDocument
               {
                 // Entire column width can be processed without hitting conflicting row span. This means that
                 // column widths line up and we can process them
-                Debug.Assert(nextColumnIndex <= columnStarts.Count);
+                DebugAssert(nextColumnIndex <= columnStarts.Count);
 
                 // Apply row span to affected columns
                 for (int spannedColumnIndex = columnIndex;
@@ -1884,7 +1894,7 @@ namespace HtmlToFlowDocument
                     spannedColumnIndex++)
                 {
                   activeRowSpans[spannedColumnIndex] = rowSpan - 1;
-                  Debug.Assert((int)activeRowSpans[spannedColumnIndex] >= 0);
+                  DebugAssert((int)activeRowSpans[spannedColumnIndex] >= 0);
                 }
 
                 columnIndex = nextColumnIndex;
@@ -1894,7 +1904,7 @@ namespace HtmlToFlowDocument
 
                 if (columnIndex < activeRowSpans.Count)
                 {
-                  Debug.Assert((double)columnStarts[columnIndex] >= columnStart);
+                  DebugAssert((double)columnStarts[columnIndex] >= columnStart);
                   if ((double)columnStarts[columnIndex] == columnStart)
                   {
                     // The new column may be in a spanned area
@@ -1902,7 +1912,7 @@ namespace HtmlToFlowDocument
                            (int)activeRowSpans[columnIndex] > 0)
                     {
                       activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-                      Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+                      DebugAssert((int)activeRowSpans[columnIndex] >= 0);
                       columnIndex++;
                       if (columnIndex < columnStarts.Count)
                         columnStart = (double)columnStarts[columnIndex];
@@ -1955,12 +1965,20 @@ namespace HtmlToFlowDocument
       rowSpanAsString = GetAttribute(htmlTdElement, "rowspan");
       if (rowSpanAsString != null)
       {
-        if (!int.TryParse(rowSpanAsString, out rowSpan))
+        if (int.TryParse(rowSpanAsString, out rowSpan))
+        {
+          if (rowSpan < 1)
+          {
+            rowSpan = 1;
+          }
+        }
+        else
         {
           // Ignore invalid value of rowspan; treat it as 1
           rowSpan = 1;
         }
       }
+
       else
       {
         // No row span, default is 1
@@ -1993,9 +2011,9 @@ namespace HtmlToFlowDocument
       int spannedColumnIndex;
 
       // Parameter validation
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(0 <= columnIndex && columnIndex <= columnStarts.Count);
-      Debug.Assert(columnWidth > 0);
+      DebugAssert(columnStarts != null);
+      DebugAssert(0 <= columnIndex && columnIndex <= columnStarts.Count);
+      DebugAssert(columnWidth > 0);
 
       columnStart = (double)columnStarts[columnIndex];
       spannedColumnIndex = columnIndex + 1;
@@ -2042,7 +2060,7 @@ namespace HtmlToFlowDocument
     /// <param name="count">
     ///     Size to be give to array list
     /// </param>
-    private static void InitializeActiveRowSpans(ArrayList activeRowSpans, int count)
+    private static void InitializeActiveRowSpans(List<int> activeRowSpans, int count)
     {
       for (int columnIndex = 0; columnIndex < count; columnIndex++)
       {
@@ -2067,8 +2085,8 @@ namespace HtmlToFlowDocument
       double nextColumnStart;
 
       // Parameter validation
-      Debug.Assert(htmlTdElement.LocalName.ToLower() == "td" || htmlTdElement.LocalName.ToLower() == "th");
-      Debug.Assert(columnStart >= 0);
+      DebugAssert(htmlTdElement.LocalName.ToLower() == "td" || htmlTdElement.LocalName.ToLower() == "th");
+      DebugAssert(columnStart >= 0);
 
       nextColumnStart = -1; // -1 indicates inability to calculate columnStart width
 
@@ -2128,10 +2146,10 @@ namespace HtmlToFlowDocument
       int columnSpan;
       double subColumnWidth; // Width of the smallest-grain columns in the table
 
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(columnIndex < columnStarts.Count);
-      Debug.Assert((double)columnStarts[columnIndex] >= 0);
-      Debug.Assert(columnWidth >= 0);
+      DebugAssert(columnStarts != null);
+      DebugAssert(columnIndex < columnStarts.Count);
+      DebugAssert((double)columnStarts[columnIndex] >= 0);
+      DebugAssert(columnWidth >= 0);
 
       columnSpanningIndex = columnIndex;
       columnSpanningValue = 0;
@@ -2142,7 +2160,7 @@ namespace HtmlToFlowDocument
       {
         subColumnWidth = (double)columnStarts[columnSpanningIndex + 1] -
                          (double)columnStarts[columnSpanningIndex];
-        Debug.Assert(subColumnWidth > 0);
+        DebugAssert(subColumnWidth > 0);
         columnSpanningValue += subColumnWidth;
         columnSpanningIndex++;
       }
@@ -2153,7 +2171,7 @@ namespace HtmlToFlowDocument
 
       columnSpan = columnSpanningIndex - columnIndex;
       columnSpan = Math.Max(1, columnSpan);
-      Debug.Assert(columnSpan > 0);
+      DebugAssert(columnSpan > 0);
 
       return columnSpan;
     }
@@ -2167,7 +2185,7 @@ namespace HtmlToFlowDocument
     /// </param>
     private static void VerifyColumnStartsAscendingOrder(ArrayList columnStarts)
     {
-      Debug.Assert(columnStarts != null);
+      DebugAssert(columnStarts != null);
 
       double columnStart;
 
@@ -2175,7 +2193,7 @@ namespace HtmlToFlowDocument
 
       foreach (object t in columnStarts)
       {
-        Debug.Assert(columnStart < (double)t);
+        DebugAssert(columnStart < (double)t);
         columnStart = (double)t;
       }
     }
@@ -2734,7 +2752,7 @@ namespace HtmlToFlowDocument
     private static void ApplyPropertiesToTableCellElement(XmlElement htmlChildNode, TableCell xamlTableCellElement)
     {
       // Parameter validation
-      Debug.Assert(htmlChildNode.LocalName.ToLower() == "td" || htmlChildNode.LocalName.ToLower() == "th");
+      DebugAssert(htmlChildNode.LocalName.ToLower() == "td" || htmlChildNode.LocalName.ToLower() == "th");
 
 
       // set default border thickness for xamlTableCellElement to enable gridlines
@@ -2751,5 +2769,13 @@ namespace HtmlToFlowDocument
     }
 
     #endregion Private Methods
+
+    static void DebugAssert(bool condition)
+    {
+      if (!condition)
+      {
+        throw new InvalidOperationException();
+      }
+    }
   }
 }
