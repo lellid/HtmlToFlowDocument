@@ -2552,7 +2552,8 @@ namespace HtmlToFlowDocument
           attributeValue = GetAttribute(htmlElement, "color");
           if (attributeValue != null)
           {
-            localProperties["color"] = attributeValue;
+            int position = 0;
+            HtmlCssParser.ParseCssColor(attributeValue, ref position, localProperties, "color");
           }
           break;
         case "samp":

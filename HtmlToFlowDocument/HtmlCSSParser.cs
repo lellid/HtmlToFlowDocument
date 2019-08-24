@@ -621,7 +621,7 @@ namespace HtmlToFlowDocument
     /// <param name="nextIndex">Index of the next.</param>
     /// <param name="localValues">The local values.</param>
     /// <param name="propertyName">Name of the property.</param>
-    private static void ParseCssColor(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName)
+    public static void ParseCssColor(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName)
     {
       var color = ParseCssColor(styleValue, ref nextIndex);
       if (color != null)
