@@ -239,19 +239,19 @@ namespace HtmlToFlowDocument
       return true;
     }
 
-    public static string GetAbsoluteCssFileName(string cssFileName, string htmlFileName)
+    public static string GetAbsoluteCssFileName(string fileName, string htmlFileName)
     {
       int idx = htmlFileName.LastIndexOf("/");
-      var path = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
+      var directory = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
 
-      while (cssFileName.StartsWith("../"))
+      while (fileName.StartsWith("../"))
       {
-        idx = path.LastIndexOf("/");
-        path = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
-        cssFileName = cssFileName.Substring(3);
+        idx = directory.LastIndexOf("/");
+        directory = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;
+        fileName = fileName.Substring(3);
       }
 
-      return string.IsNullOrEmpty(path) ? cssFileName : path + "/" + cssFileName;
+      return string.IsNullOrEmpty(directory) ? fileName : directory + "/" + fileName;
     }
   }
 }

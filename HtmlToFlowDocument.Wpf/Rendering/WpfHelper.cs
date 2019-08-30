@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Dr. Dirk Lellinger. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -50,6 +52,71 @@ namespace HtmlToFlowDocument.Rendering
         default:
           return new TextElement[0];
       }
+    }
+
+    /// <summary>
+    /// Gets a bookmark string from a given text element. In a document of exactly the same structure this bookmark string
+    /// can be used to find the TextElement again by using <see cref="GetTextElementFromBookmark(FrameworkContentElement, string)"/>.
+    /// </summary>
+    /// <param name="wpf">The text element.</param>
+    /// <returns>A bookmark string that can be used to find that text element again.</returns>
+    public static string GetBookmarkFromTextElement(FrameworkContentElement wpf)
+    {
+      var result = new StringBuilder();
+      var child = wpf;
+      while (child.Parent is FrameworkContentElement parent)
+      {
+
+        int index = 0;
+        foreach (var c in GetImmediateChildsOf(parent))
+        {
+          if (object.ReferenceEquals(c, child))
+          {
+            break;
+          }
+          else
+          {
+            ++index;
+          }
+        }
+
+        result.Insert(0, string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} ", index));
+
+        child = parent;
+      }
+      return result.ToString();
+    }
+
+    /// <summary>
+    /// Given the bookmark string returned by <see cref="GetBookmarkFromTextElement(FrameworkContentElement)"/>, in a FlowDocument
+    /// of the same structure this function returns the same text element again.
+    /// </summary>
+    /// <param name="doc">The flow document.</param>
+    /// <param name="bookmark">The bookmark string.</param>
+    /// <returns>The text element that corresponds with the bookmark string.</returns>
+    public static FrameworkContentElement GetTextElementFromBookmark(FlowDocument doc, string bookmark)
+    {
+      var bm = bookmark.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+      FrameworkContentElement result = doc;
+
+      foreach (var numStr in bm)
+      {
+        int num = int.Parse(numStr, System.Globalization.CultureInfo.InvariantCulture);
+
+        foreach (var c in GetImmediateChildsOf(result))
+        {
+          if (num == 0)
+          {
+            result = c;
+            break;
+          }
+          else
+          {
+            --num;
+          }
+        }
+      }
+      return result;
     }
 
     /// <summary>
