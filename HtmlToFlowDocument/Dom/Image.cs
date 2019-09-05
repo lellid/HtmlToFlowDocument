@@ -10,6 +10,14 @@ namespace HtmlToFlowDocument.Dom
   {
     public string Source { get; set; }
 
+    public double? Width { get; set; }
+
+    public bool IsWidthInPercentOfPage { get; set; }
+
+    public double? Height { get; set; }
+
+    public bool IsHeightInPercentOfPage { get; set; }
+
     protected override void ThrowOnInvalidChildElement(TextElement child)
     {
       base.ThrowOnInvalidChildElement(child);

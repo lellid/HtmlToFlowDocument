@@ -108,7 +108,7 @@ namespace HtmlToFlowDocument
     //
     // ---------------------------------------------------------------------
 
-    #region Internal Methods
+    #region Public Methods
 
     /// <summary>
     ///     Converts an Html string into Xaml string.
@@ -152,6 +152,7 @@ namespace HtmlToFlowDocument
 
       // convert root html element
       var inheritedProperties = new Hashtable();
+      inheritedProperties.Add("sourceHtmlFileName", htmlFileName);
       inheritedProperties.Add("font-size", XamlFontSizeMedium);
       AddBlock(xamlFlowDocumentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
 
@@ -838,6 +839,9 @@ namespace HtmlToFlowDocument
       if (string.IsNullOrEmpty(imageSource))
         return;
 
+      // if source is a relative name, convert it to an absolute name
+      imageSource = CssStylesheet.GetAbsoluteCssFileName(imageSource, (string)inheritedProperties["sourceHtmlFileName"]);
+
 
       Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
                stylesheet, sourceContext);
@@ -850,8 +854,30 @@ namespace HtmlToFlowDocument
       var xamlImageElement = new Image
       {
         Source = imageSource,
-        Tag = AttachSourceAsTags ? htmlElement : null
+        Tag = AttachSourceAsTags ? htmlElement : null,
       };
+
+      var width = localProperties["width"];
+      if (width is double w1)
+      {
+        xamlImageElement.Width = w1;
+      }
+      else if (width is ValueTuple<double, string> w2)
+      {
+        xamlImageElement.Width = w2.Item1;
+        xamlImageElement.IsWidthInPercentOfPage = true;
+      }
+
+      var height = localProperties["height"];
+      if (height is double h1)
+      {
+        xamlImageElement.Height = h1;
+      }
+      else if (height is ValueTuple<double, string> h2)
+      {
+        xamlImageElement.Height = h2.Item1;
+        xamlImageElement.IsHeightInPercentOfPage = true;
+      }
 
       xamlContainerElement.AppendChild(xamlImageElement); // put the image in the container
       xamlParentElement.AppendChild(xamlContainerElement); // put container in the document
@@ -2531,30 +2557,32 @@ namespace HtmlToFlowDocument
           localProperties["text-decoration-underline"] = "true";
           break;
         case "font":
-          string attributeValue = GetAttribute(htmlElement, "face");
-          if (attributeValue != null)
           {
-            localProperties["font-family"] = attributeValue;
-          }
-          attributeValue = GetAttribute(htmlElement, "size");
-          if (attributeValue != null)
-          {
-            double fontSize = double.Parse(attributeValue) * (12.0 / 3.0);
-            if (fontSize < 1.0)
+            string attributeValue = GetAttribute(htmlElement, "face");
+            if (attributeValue != null)
             {
-              fontSize = 1.0;
+              localProperties["font-family"] = attributeValue;
             }
-            else if (fontSize > 1000.0)
+            attributeValue = GetAttribute(htmlElement, "size");
+            if (attributeValue != null)
             {
-              fontSize = 1000.0;
+              double fontSize = double.Parse(attributeValue) * (12.0 / 3.0);
+              if (fontSize < 1.0)
+              {
+                fontSize = 1.0;
+              }
+              else if (fontSize > 1000.0)
+              {
+                fontSize = 1000.0;
+              }
+              localProperties["font-size"] = fontSize;
             }
-            localProperties["font-size"] = fontSize;
-          }
-          attributeValue = GetAttribute(htmlElement, "color");
-          if (attributeValue != null)
-          {
-            int position = 0;
-            HtmlCssParser.ParseCssColor(attributeValue, ref position, localProperties, "color");
+            attributeValue = GetAttribute(htmlElement, "color");
+            if (attributeValue != null)
+            {
+              int position = 0;
+              HtmlCssParser.ParseCssColor(attributeValue, ref position, localProperties, "color");
+            }
           }
           break;
         case "samp":
@@ -2616,6 +2644,7 @@ namespace HtmlToFlowDocument
           localProperties["list-style-type"] = "decimal";
           break;
 
+
         case "table":
         case "body":
         case "html":
@@ -2625,6 +2654,42 @@ namespace HtmlToFlowDocument
       // Override html defaults by css attributes - from stylesheets and inline settings
       HtmlCssParser.GetElementPropertiesFromCssAttributes(htmlElement, elementName, stylesheet, localProperties,
           sourceContext);
+
+      // local properties that will override the Css attributes
+      switch (elementName)
+      {
+        case "img":
+          {
+            var fontSize = (double)localProperties["font-size"];
+
+            string attributeValue = GetAttribute(htmlElement, "width");
+            if (attributeValue != null)
+            {
+              int nextIndex = 0;
+              var (width, unit) = HtmlCssParser.ParseSize(attributeValue, ref nextIndex, true);
+              if (width.HasValue)
+                if (unit == "%")
+                  localProperties["width"] = (width, unit);
+                else
+                  localProperties["width"] = HtmlCssParser.SizeAndUnitToAbsoluteSize(width, unit, fontSize, fontSize);
+            }
+
+            attributeValue = GetAttribute(htmlElement, "height");
+            if (attributeValue != null)
+            {
+              int nextIndex = 0;
+              var (height, unit) = HtmlCssParser.ParseSize(attributeValue, ref nextIndex, true);
+              if (height.HasValue)
+              {
+                if (unit == "%")
+                  localProperties["height"] = HtmlCssParser.SizeAndUnitToAbsoluteSize(height, unit, fontSize, fontSize);
+                else
+                  localProperties["height"] = HtmlCssParser.SizeAndUnitToAbsoluteSize(height, unit, fontSize, fontSize);
+              }
+            }
+          }
+          break;
+      }
 
       // Combine local properties with context to create new current properties
       propertyEnumerator = localProperties.GetEnumerator();

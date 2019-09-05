@@ -121,10 +121,34 @@ namespace HtmlToFlowDocument.Rendering
             wr.WriteAttributeString("TargetName", hl.TargetName);
           }
           break;
-        case Image img:
-          if (!string.IsNullOrEmpty(img.Source))
+        case Image image:
+          if (!string.IsNullOrEmpty(image.Source))
           {
-            wr.WriteAttributeString("Source", string.Format("{{Binding ImageProvider[{0}]}}", img.Source));
+            wr.WriteAttributeString("Source", string.Format("{{Binding ImageProvider[{0}]}}", image.Source));
+          }
+
+          if (image.Width.HasValue)
+          {
+            if (image.IsWidthInPercentOfPage)
+            {
+              wr.WriteAttributeString("Width", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Width.Value) + "}");
+            }
+            else
+            {
+              wr.WriteAttributeString("Width", XmlConvert.ToString(image.Width.Value));
+            }
+          }
+
+          if (image.Height.HasValue)
+          {
+            if (image.IsHeightInPercentOfPage)
+            {
+              wr.WriteAttributeString("Height", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Height.Value) + "}");
+            }
+            else
+            {
+              wr.WriteAttributeString("Height", XmlConvert.ToString(image.Height.Value));
+            }
           }
           break;
 

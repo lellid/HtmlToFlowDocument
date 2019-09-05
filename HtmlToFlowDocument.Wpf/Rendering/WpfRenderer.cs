@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using HtmlToFlowDocument.Dom;
 using swd = System.Windows.Documents;
 
@@ -87,7 +88,7 @@ namespace HtmlToFlowDocument.Rendering
           break;
         case FlowDocument flowDocument:
           {
-            var flowDocumente = new swd.FlowDocument();
+            var flowDocumente = new swd.FlowDocument() { Name = "_guiFlowDocument" };
             if (InvertColors)
             {
               flowDocumente.Background = System.Windows.Media.Brushes.Black;
@@ -117,6 +118,36 @@ namespace HtmlToFlowDocument.Rendering
             if (!string.IsNullOrEmpty(image.Source))
             {
               imagee.SetBinding(System.Windows.Controls.Image.SourceProperty, $"ImageProvider[{image.Source}]");
+            }
+            if (image.Width.HasValue)
+            {
+              if (image.IsWidthInPercentOfPage)
+              {
+                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
+                binding.ElementName = "_guiFlowDocument"; // the flow document must be named with _guiFlowDocument
+                binding.Converter = RelativeSizeConverter.Instance;
+                binding.ConverterParameter = image.Width.Value;
+                imagee.SetBinding(System.Windows.Controls.Image.WidthProperty, binding);
+              }
+              else
+              {
+                imagee.Width = image.Width.Value;
+              }
+            }
+            if (image.Height.HasValue)
+            {
+              if (image.IsHeightInPercentOfPage)
+              {
+                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
+                binding.ElementName = "_guiFlowDocument"; // the flow document must be named with _guiFlowDocument
+                binding.Converter = RelativeSizeConverter.Instance;
+                binding.ConverterParameter = image.Height.Value;
+                imagee.SetBinding(System.Windows.Controls.Image.HeightProperty, binding);
+              }
+              else
+              {
+                imagee.Height = image.Height.Value;
+              }
             }
             wpf = imagee;
           }

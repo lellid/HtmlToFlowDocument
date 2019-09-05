@@ -426,7 +426,7 @@ namespace HtmlToFlowDocument
     /// <param name="nextIndex">At the call, the index into the string to parse. At the end, the next index to parse.</param>
     /// <param name="mustBeNonNegative">if set to <c>true</c>, the value must be non-negative].</param>
     /// <returns>The value and the unit of the parsed CSS size. If parsing was not possible, the tuple (null, null) is returned.</returns>
-    public static (double? Value, string Unit) ParseCssSize(string styleValue, ref int nextIndex, bool mustBeNonNegative)
+    public static (double? Value, string Unit) ParseSize(string styleValue, ref int nextIndex, bool mustBeNonNegative)
     {
       ParseWhiteSpace(styleValue, ref nextIndex);
 
@@ -499,9 +499,23 @@ namespace HtmlToFlowDocument
     /// <param name="fontSizeAbsolute">The absolute font size of the parent element in px.</param>
     /// <returns>A value in px, if the parsing was successful. Otherwise, the return value is null.</returns>
     /// <exception cref="NotImplementedException"></exception>
-    private static double? ParseCssSizeInPx(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
+    public static double? ParseSizeInPx(string styleValue, ref int nextIndex, bool mustBeNonNegative, double fontSizeAbsolute)
     {
-      var (value, unit) = ParseCssSize(styleValue, ref nextIndex, mustBeNonNegative);
+      var (value, unit) = ParseSize(styleValue, ref nextIndex, mustBeNonNegative);
+      return SizeAndUnitToAbsoluteSize(value, unit, fontSizeAbsolute, fontSizeAbsolute);
+    }
+
+    /// <summary>
+    /// Converts value and unit of a size into an absolute size value in pixel.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="unit">The unit.</param>
+    /// <param name="fontSizeAbsolute">The absolute font size absolute.</param>
+    /// <param name="percentSizeAbsolute">The absolute size that percent units refer to. In case of images etc. this is the page size.</param>
+    /// <returns>The absolute size value in pixel.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public static double? SizeAndUnitToAbsoluteSize(double? value, string unit, double fontSizeAbsolute, double percentSizeAbsolute)
+    {
       if (unit == null || value == null)
         return null;
 
@@ -512,7 +526,7 @@ namespace HtmlToFlowDocument
         case "px":
           return value.Value;
         case "%":
-          return value.Value * fontSizeAbsolute / 100;
+          return value.Value * percentSizeAbsolute / 100;
         case "rem":
           return value.Value * fontSizeAbsolute;
         case "mm":
@@ -543,7 +557,7 @@ namespace HtmlToFlowDocument
     /// <param name="fontSizeAbsolute">The font size absolute.</param>
     private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName, bool mustBeNonNegative, double fontSizeAbsolute)
     {
-      var length = ParseCssSizeInPx(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
+      var length = ParseSizeInPx(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
       if (length != null)
       {
         localValues[propertyName] = length;
@@ -871,7 +885,7 @@ namespace HtmlToFlowDocument
           ? (object)ParseCssColor(styleValue, ref nextIndex)
           : propertyName == "border-style"
               ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
-              : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
+              : (object)ParseSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
       if (value != null)
       {
         // if a first value could be found, then set all 4 sides, and continue parsing
@@ -885,7 +899,7 @@ namespace HtmlToFlowDocument
             ? (object)ParseCssColor(styleValue, ref nextIndex)
             : propertyName == "border-style"
                 ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
-                : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
+                : (object)ParseSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
         if (value != null)
         {
           // if a second value could be found, set the right and left property, and continue parsing
@@ -896,7 +910,7 @@ namespace HtmlToFlowDocument
               ? (object)ParseCssColor(styleValue, ref nextIndex)
               : propertyName == "border-style"
                   ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
-                  : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
+                  : (object)ParseSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
           if (value != null)
           {
             // if a third value could be found, set only the bottom property, and continue parsing
@@ -905,7 +919,7 @@ namespace HtmlToFlowDocument
                 ? (object)ParseCssColor(styleValue, ref nextIndex)
                 : propertyName == "border-style"
                     ? (object)ParseCssBorderStyle(styleValue, ref nextIndex)
-                    : (object)ParseCssSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
+                    : (object)ParseSizeInPx(styleValue, ref nextIndex, /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
             if (value != null)
             {
               // if a value could be found, set the remaining left property
