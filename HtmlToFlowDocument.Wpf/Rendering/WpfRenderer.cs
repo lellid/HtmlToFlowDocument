@@ -38,6 +38,14 @@ namespace HtmlToFlowDocument.Rendering
     public bool SplitIntoSentences { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets the font dictionary.
+    /// </summary>
+    /// <value>
+    /// The font dictionary. Key is the font name, value is the absolute path of the font file.
+    /// </value>
+    public Dictionary<string, string> FontDictionary { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>
     /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
     /// This will of course increase the memory footprint, because the DOM elements then could not be reclaimed by the garbage collector.
     /// </summary>
@@ -54,6 +62,8 @@ namespace HtmlToFlowDocument.Rendering
     /// <returns></returns>
     public swd.FlowDocument Render(FlowDocument flowDocument)
     {
+      LoadFonts();
+
       return (swd.FlowDocument)RenderRecursively(flowDocument);
     }
 
@@ -271,7 +281,7 @@ namespace HtmlToFlowDocument.Rendering
 
         if (!string.IsNullOrEmpty(e.FontFamily))
         {
-          te.FontFamily = new System.Windows.Media.FontFamily(e.FontFamily);
+          te.FontFamily = GetFontFamily(e.FontFamily);
         }
 
         if (e.FontSize.HasValue)
@@ -662,5 +672,48 @@ namespace HtmlToFlowDocument.Rendering
     }
 
     #endregion
+
+    Dictionary<string, System.Windows.Media.FontFamily> _resolvedFontFamilies = new Dictionary<string, System.Windows.Media.FontFamily>();
+
+    void LoadFonts()
+    {
+      _resolvedFontFamilies.Clear();
+      var alreadyTriedFolders = new HashSet<string>();
+      foreach (var entry in FontDictionary)
+      {
+        var folder = System.IO.Path.GetDirectoryName(entry.Value);
+        if (!alreadyTriedFolders.Contains(folder))
+        {
+          alreadyTriedFolders.Add(folder);
+          if (folder.StartsWith(@"\\?\"))
+            folder = folder.Substring(4);
+          folder = folder.Replace('\\', '/');
+          folder = "file:///" + folder;
+          if (!folder.EndsWith("/"))
+            folder += "/";
+          var families = System.Windows.Media.Fonts.GetFontFamilies(folder);
+
+          foreach (var family in families)
+          {
+            var src = family.Source;
+            var parts = src.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+              _resolvedFontFamilies[parts[parts.Length - 1].ToLowerInvariant()] = family;
+          }
+        }
+      }
+    }
+
+    System.Windows.Media.FontFamily GetFontFamily(string familyName)
+    {
+      familyName = familyName.ToLowerInvariant();
+      var parts = familyName.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+      if (_resolvedFontFamilies.ContainsKey(parts[0].Trim()))
+        return _resolvedFontFamilies[parts[0].Trim()];
+      else
+        return new System.Windows.Media.FontFamily(familyName);
+    }
+
   }
 }
