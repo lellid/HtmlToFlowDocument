@@ -96,6 +96,11 @@ namespace HtmlToFlowDocument.Rendering
             wr.WriteAttributeString("TextAlignment", Enum.GetName(typeof(TextAlignment), b.TextAlignment.Value));
           }
 
+          if (b.LineHeight.HasValue)
+          {
+            wr.WriteAttributeString("LineHeight", XmlConvert.ToString(b.LineHeight.Value));
+          }
+
           break;
         case Inline i:
           break;

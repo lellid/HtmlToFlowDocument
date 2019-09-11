@@ -338,6 +338,11 @@ namespace HtmlToFlowDocument.Rendering
         {
           be.TextAlignment = ToTextAlignment(b.TextAlignment.Value);
         }
+
+        if (b.LineHeight.HasValue)
+        {
+          be.LineHeight = b.LineHeight.Value;
+        }
       }
       //  finished rendering the attributes
 

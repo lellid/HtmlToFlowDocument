@@ -2284,6 +2284,12 @@ namespace HtmlToFlowDocument
             //  Convert from css size into FontSize
             xamlElement.FontSize = (double?)propertyEnumerator.Value;
             break;
+          case "line-height":
+            if (xamlElement is Block block)
+            {
+              block.LineHeight = (double?)propertyEnumerator.Value;
+            }
+            break;
           case "color":
             xamlElement.Foreground = (int?)propertyEnumerator.Value;
             break;

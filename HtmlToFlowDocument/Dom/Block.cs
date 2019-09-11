@@ -17,5 +17,7 @@ namespace HtmlToFlowDocument.Dom
     public Thickness? BorderThickness { get; set; }
 
     public TextAlignment? TextAlignment { get; set; }
+
+    public double? LineHeight { get; set; }
   }
 }

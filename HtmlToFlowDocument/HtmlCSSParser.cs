@@ -239,7 +239,7 @@ namespace HtmlToFlowDocument
                 ParseCssFontVariant(styleValue, ref nextIndex, localProperties);
                 break;
               case "line-height":
-                ParseCssSize(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
+                ParseCssLineHeight(styleValue, ref nextIndex, localProperties, "line-height", /*mustBeNonNegative:*/true, (double)localProperties["font-size"]);
                 break;
               case "word-spacing":
                 //  Implement word-spacing conversion
@@ -447,7 +447,7 @@ namespace HtmlToFlowDocument
         }
         var number = styleValue.Substring(startIndex, nextIndex - startIndex);
 
-        var unit = ParseWordEnumeration(FontSizeUnits, styleValue, ref nextIndex) ?? "px";
+        var unit = ParseWordEnumeration(FontSizeUnits, styleValue, ref nextIndex) ?? "";
 
         if (mustBeNonNegative && styleValue[startIndex] == '-')
         {
@@ -512,9 +512,12 @@ namespace HtmlToFlowDocument
     /// <param name="unit">The unit.</param>
     /// <param name="fontSizeAbsolute">The absolute font size absolute.</param>
     /// <param name="percentSizeAbsolute">The absolute size that percent units refer to. In case of images etc. this is the page size.</param>
+    /// <param name="treatEmptyUnitAsRelativeValue">If true, a missing unit (empty unit string) is treated as relative value, (so e.g. a value of 1.2 corresponds to 120%). To be used e.g. with line-height.
+    /// If false, a missing unit is treated as absolute size in px. This is the default value, and applies e.g. to font size etc.
+    /// </param>
     /// <returns>The absolute size value in pixel.</returns>
     /// <exception cref="NotImplementedException"></exception>
-    public static double? SizeAndUnitToAbsoluteSize(double? value, string unit, double fontSizeAbsolute, double percentSizeAbsolute)
+    public static double? SizeAndUnitToAbsoluteSize(double? value, string unit, double fontSizeAbsolute, double percentSizeAbsolute, bool treatEmptyUnitAsRelativeValue = false)
     {
       if (unit == null || value == null)
         return null;
@@ -541,6 +544,8 @@ namespace HtmlToFlowDocument
           return value.Value * (6 * 96);
         case "ex":
           return value.Value * fontSizeAbsolute * 0.4; // Height of the letter "x"
+        case "":
+          return treatEmptyUnitAsRelativeValue ? value.Value * percentSizeAbsolute : value.Value;
         default:
           throw new NotImplementedException();
       }
@@ -558,6 +563,25 @@ namespace HtmlToFlowDocument
     private static void ParseCssSize(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName, bool mustBeNonNegative, double fontSizeAbsolute)
     {
       var length = ParseSizeInPx(styleValue, ref nextIndex, mustBeNonNegative, fontSizeAbsolute);
+      if (length != null)
+      {
+        localValues[propertyName] = length;
+      }
+    }
+
+    /// <summary>
+    /// Parses the size, and stores the value in the dictionary of local values, using the key <paramref name="propertyName"/>.
+    /// </summary>
+    /// <param name="styleValue">The string to parse.</param>
+    /// <param name="nextIndex">At the call, the index into the string to parse. At the end, the next index to parse.</param>
+    /// <param name="localValues">The dictionary of local values.</param>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <param name="mustBeNonNegative">if set to <c>true</c> [must be non negative].</param>
+    /// <param name="fontSizeAbsolute">The font size absolute.</param>
+    private static void ParseCssLineHeight(string styleValue, ref int nextIndex, Hashtable localValues, string propertyName, bool mustBeNonNegative, double fontSizeAbsolute)
+    {
+      var (value, unit) = ParseSize(styleValue, ref nextIndex, mustBeNonNegative);
+      var length = SizeAndUnitToAbsoluteSize(value, unit, fontSizeAbsolute, fontSizeAbsolute, true);
       if (length != null)
       {
         localValues[propertyName] = length;
