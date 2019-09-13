@@ -64,6 +64,50 @@ namespace HtmlToFlowDocument.Dom
       }
     }
 
+    /// <summary>
+    /// Gets the foreground color this text element would inherit. The local value of ForegroundColor is not put into consideration.
+    /// </summary>
+    /// <value>
+    /// The foreground color this text element would inherit.
+    /// </value>
+    public double? ForegroundInheritedOnly
+    {
+      get
+      {
+        var instance = this.Parent;
+        int? result = null;
+        while (instance != null && result == null)
+        {
+
+          result = instance.Foreground;
+          instance = instance.Parent;
+        }
+        return result;
+      }
+    }
+
+    /// <summary>
+    /// Gets the background color this text element would inherit. The local value of BackgroundColor is not put into consideration.
+    /// </summary>
+    /// <value>
+    /// The background color this text element would inherit.
+    /// </value>
+    public double? BackgroundInheritedOnly
+    {
+      get
+      {
+        var instance = this.Parent;
+        int? result = null;
+        while (instance != null && result == null)
+        {
+
+          result = instance.Background;
+          instance = instance.Parent;
+        }
+        return result;
+      }
+    }
+
 
 
 

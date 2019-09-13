@@ -98,12 +98,17 @@ namespace HtmlToFlowDocument.Rendering
           break;
         case FlowDocument flowDocument:
           {
+            // make sure the standard colors were set
+            flowDocument.Foreground = 0xFF;
+            flowDocument.Background = -1;
+
             var flowDocumente = new swd.FlowDocument() { Name = "_guiFlowDocument" };
-            if (InvertColors)
-            {
-              flowDocumente.Background = System.Windows.Media.Brushes.Black;
-              flowDocumente.Foreground = System.Windows.Media.Brushes.White;
-            }
+
+            if (flowDocument.Background.HasValue)
+              flowDocumente.Background = GetBrushFromColor(flowDocument.Background.Value);
+            if (flowDocument.Foreground.HasValue)
+              flowDocumente.Foreground = GetBrushFromColor(flowDocument.Foreground.Value);
+
             wpf = flowDocumente;
           }
           break;
@@ -299,14 +304,14 @@ namespace HtmlToFlowDocument.Rendering
           te.FontWeight = ToFontWeight(e.FontWeight.Value);
         }
 
-        if (e.Foreground.HasValue)
+        if (e.Foreground.HasValue && e.Foreground != e.ForegroundInheritedOnly)
         {
-          te.Foreground = new System.Windows.Media.SolidColorBrush(ToColor(e.Foreground.Value));
+          te.Foreground = GetBrushFromColor(e.Foreground.Value);
         }
 
-        if (e.Background.HasValue)
+        if (e.Background.HasValue && e.Background != e.BackgroundInheritedOnly)
         {
-          te.Background = new System.Windows.Media.SolidColorBrush(ToColor(e.Background.Value));
+          te.Background = GetBrushFromColor(e.Background.Value);
         }
       }
 
@@ -720,5 +725,23 @@ namespace HtmlToFlowDocument.Rendering
         return new System.Windows.Media.FontFamily(familyName);
     }
 
+
+    Dictionary<int, System.Windows.Media.Brush> _cachedSolidBrushes = new Dictionary<int, System.Windows.Media.Brush>();
+
+    /// <summary>
+    /// Gets a solid color brush from the color specified.
+    /// </summary>
+    /// <param name="color">The color in RGBA format (A is the least significant byte).</param>
+    /// <returns>A solid color brush.</returns>
+    public System.Windows.Media.Brush GetBrushFromColor(int color)
+    {
+      if (!_cachedSolidBrushes.TryGetValue(color, out var brush))
+      {
+        brush = new System.Windows.Media.SolidColorBrush(ToColor(color));
+        brush.Freeze();
+        _cachedSolidBrushes.Add(color, brush);
+      }
+      return brush;
+    }
   }
 }
