@@ -68,6 +68,14 @@ namespace HtmlToFlowDocument.Dom
     {
       return new Thickness { Bottom = this.Bottom, Top = this.Top, Right = this.Right, Left = l };
     }
+
+    public override string ToString()
+    {
+      if (Left == Right && Left == Top && Left == Bottom)
+        return Left.ToString();
+      else
+        return string.Concat("(", Left.ToString(), ", ", Top.ToString(), ", ", Right.ToString(), ", ", Bottom.ToString(), ")");
+    }
   }
 
   public enum ListMarkerStyle
