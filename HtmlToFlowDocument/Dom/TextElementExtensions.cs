@@ -8,6 +8,18 @@ namespace HtmlToFlowDocument.Dom
 {
   public static class TextElementExtensions
   {
+    public static TextElement GetRootElement(this TextElement te)
+    {
+      var result = te;
+
+      while (result.Parent != null)
+      {
+        result = result.Parent;
+      }
+
+      return result;
+    }
+
     public static IEnumerable<TextElement> GetThisAndAllAfter(this TextElement te)
     {
       foreach (var children in GetThisAndAllChilds(te))

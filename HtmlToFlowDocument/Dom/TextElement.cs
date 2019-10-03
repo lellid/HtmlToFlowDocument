@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace HtmlToFlowDocument.Dom
@@ -188,6 +189,29 @@ namespace HtmlToFlowDocument.Dom
       else
         return this._childs.Remove(child);
     }
+    #endregion
+
+    #region Debugging and Displaying
+
+    public virtual string ShortDescription
+    {
+      get
+      {
+        if (this is Run r && r.Text != null)
+        {
+          return string.Concat(this.GetType().Name, " | ", r.Text.Substring(0, Math.Min(32, r.Text.Length)));
+        }
+        else if (TextElementExtensions.GetThisAndAllChilds(this).OfType<Run>().FirstOrDefault((rr => rr.Text?.Length > 0)) is Run rchild)
+        {
+          return string.Concat(this.GetType().Name, " | ", rchild.Text.Substring(0, Math.Min(32, rchild.Text.Length)));
+        }
+        else
+        {
+          return this.GetType().Name;
+        }
+      }
+    }
+
     #endregion
 
   }
