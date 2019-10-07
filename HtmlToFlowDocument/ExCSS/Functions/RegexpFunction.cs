@@ -2,18 +2,18 @@
 
 namespace ExCSS
 {
-  internal sealed class RegexpFunction : DocumentFunction
-  {
-    readonly Regex _regex;
-
-    public RegexpFunction(string url) : base(FunctionNames.Regexp, url)
+    internal sealed class RegexpFunction : DocumentFunction
     {
-      _regex = new Regex(url, RegexOptions.ECMAScript | RegexOptions.CultureInvariant);
-    }
+        readonly Regex _regex;
 
-    public override bool Matches(Url url)
-    {
-      return _regex.IsMatch(url.Href);
+        public RegexpFunction(string url) : base(FunctionNames.Regexp, url)
+        {
+            _regex = new Regex(url, RegexOptions.ECMAScript | RegexOptions.CultureInvariant);
+        }
+
+        public override bool Matches(Url url)
+        {
+            return _regex.IsMatch(url.Href);
+        }
     }
-  }
 }

@@ -3,59 +3,59 @@ using System.Linq;
 
 namespace ExCSS
 {
-  internal sealed class StringsValueConverter : IValueConverter
-  {
-    public IPropertyValue Convert(IEnumerable<Token> value)
+    internal sealed class StringsValueConverter : IValueConverter
     {
-      var items = value.ToItems();
-      var n = items.Count;
-
-      if (n % 2 == 0)
-      {
-        var values = new string[items.Count];
-
-        for (var i = 0; i < n; i++)
+        public IPropertyValue Convert(IEnumerable<Token> value)
         {
-          values[i] = items[i].ToCssString();
+            var items = value.ToItems();
+            var n = items.Count;
 
-          if (values[i] == null)
-          {
+            if (n % 2 == 0)
+            {
+                var values = new string[items.Count];
+
+                for (var i = 0; i < n; i++)
+                {
+                    values[i] = items[i].ToCssString();
+
+                    if (values[i] == null)
+                    {
+                        return null;
+                    }
+                }
+
+                return new StringsValue(values, value);
+            }
+
             return null;
-          }
         }
 
-        return new StringsValue(values, value);
-      }
+        public IPropertyValue Construct(Property[] properties)
+        {
+            return properties.Guard<StringsValue>();
+        }
 
-      return null;
+        private sealed class StringsValue : IPropertyValue
+        {
+            private readonly string[] _values;
+
+            public StringsValue(string[] values, IEnumerable<Token> tokens)
+            {
+                _values = values;
+                Original = new TokenValue(tokens);
+            }
+
+            public string CssText
+            {
+                get { return string.Join(" ", _values.Select(m => m.StylesheetString())); }
+            }
+
+            public TokenValue Original { get; }
+
+            public TokenValue ExtractFor(string name)
+            {
+                return Original;
+            }
+        }
     }
-
-    public IPropertyValue Construct(Property[] properties)
-    {
-      return properties.Guard<StringsValue>();
-    }
-
-    private sealed class StringsValue : IPropertyValue
-    {
-      private readonly string[] _values;
-
-      public StringsValue(string[] values, IEnumerable<Token> tokens)
-      {
-        _values = values;
-        Original = new TokenValue(tokens);
-      }
-
-      public string CssText
-      {
-        get { return string.Join(" ", _values.Select(m => m.StylesheetString())); }
-      }
-
-      public TokenValue Original { get; }
-
-      public TokenValue ExtractFor(string name)
-      {
-        return Original;
-      }
-    }
-  }
 }

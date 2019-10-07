@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-  internal enum QuirksMode : byte
-  {
-    Off,
-    Limited,
-    On
-  }
+    internal enum QuirksMode : byte
+    {
+        Off,
+        Limited,
+        On
+    }
 }

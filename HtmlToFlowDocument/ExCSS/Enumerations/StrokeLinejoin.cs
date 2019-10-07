@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-  public enum StrokeLinejoin : byte
-  {
-    Miter,
-    Round,
-    Bevel
-  }
+    public enum StrokeLinejoin : byte
+    {
+        Miter,
+        Round,
+        Bevel
+    }
 }

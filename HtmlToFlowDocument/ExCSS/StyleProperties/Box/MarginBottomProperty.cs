@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class MarginBottomProperty : Property
-  {
-    private static readonly IValueConverter StyleConverter =
-        Converters.AutoLengthOrPercentConverter.OrDefault(Length.Zero);
-
-    internal MarginBottomProperty()
-        : base(PropertyNames.MarginBottom, PropertyFlags.Unitless | PropertyFlags.Animatable)
+    internal sealed class MarginBottomProperty : Property
     {
-    }
+        private static readonly IValueConverter StyleConverter =
+            Converters.AutoLengthOrPercentConverter.OrDefault(Length.Zero);
 
-    internal override IValueConverter Converter => StyleConverter;
-  }
+        internal MarginBottomProperty()
+            : base(PropertyNames.MarginBottom, PropertyFlags.Unitless | PropertyFlags.Animatable)
+        {
+        }
+
+        internal override IValueConverter Converter => StyleConverter;
+    }
 }

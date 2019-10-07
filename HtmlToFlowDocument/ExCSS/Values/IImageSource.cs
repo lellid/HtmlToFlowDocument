@@ -1,6 +1,6 @@
 ﻿namespace ExCSS
 {
-  public interface IImageSource
-  {
-  }
+    public interface IImageSource
+    {
+    }
 }

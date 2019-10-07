@@ -1,10 +1,10 @@
 ﻿namespace ExCSS
 {
-  public enum ClearMode : byte
-  {
-    None,
-    Left,
-    Right,
-    Both
-  }
+    public enum ClearMode : byte
+    {
+        None,
+        Left,
+        Right,
+        Both
+    }
 }

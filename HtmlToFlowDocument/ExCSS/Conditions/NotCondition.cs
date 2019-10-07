@@ -2,38 +2,38 @@
 
 namespace ExCSS
 {
-  internal sealed class NotCondition : StylesheetNode, IConditionFunction
-  {
-    private IConditionFunction _content;
-
-    public IConditionFunction Content
+    internal sealed class NotCondition : StylesheetNode, IConditionFunction
     {
-      get { return _content ?? new EmptyCondition(); }
-      set
-      {
-        if (_content != null)
+        private IConditionFunction _content;
+
+        public IConditionFunction Content
         {
-          RemoveChild(_content);
+            get { return _content ?? new EmptyCondition(); }
+            set
+            {
+                if (_content != null)
+                {
+                    RemoveChild(_content);
+                }
+
+                _content = value;
+
+                if (value != null)
+                {
+                    AppendChild(_content);
+                }
+            }
         }
 
-        _content = value;
-
-        if (value != null)
+        public bool Check()
         {
-          AppendChild(_content);
+            return !Content.Check();
         }
-      }
-    }
 
-    public bool Check()
-    {
-      return !Content.Check();
+        public override void ToCss(TextWriter writer, IStyleFormatter formatter)
+        {
+            writer.Write("not ");
+            Content.ToCss(writer, formatter);
+        }
     }
-
-    public override void ToCss(TextWriter writer, IStyleFormatter formatter)
-    {
-      writer.Write("not ");
-      Content.ToCss(writer, formatter);
-    }
-  }
 }

@@ -1,21 +1,21 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class UrlToken : Token
-  {
-    public UrlToken(string functionName, string data, bool valid, TextPosition position)
-        : base(TokenType.Url, data, position)
+    internal sealed class UrlToken : Token
     {
-      IsValid = valid;
-      FunctionName = functionName;
-    }
-    public override string ToValue()
-    {
-      var url = Data.StylesheetString();
-      return FunctionName.StylesheetFunction(url);
-    }
+        public UrlToken(string functionName, string data, bool valid, TextPosition position)
+            : base(TokenType.Url, data, position)
+        {
+            IsValid = valid;
+            FunctionName = functionName;
+        }
+        public override string ToValue()
+        {
+            var url = Data.StylesheetString();
+            return FunctionName.StylesheetFunction(url);
+        }
 
-    public bool IsValid { get; }
-    public string FunctionName { get; }
-  }
+        public bool IsValid { get; }
+        public string FunctionName { get; }
+    }
 }

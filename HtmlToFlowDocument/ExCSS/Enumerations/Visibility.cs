@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-  public enum Visibility : byte
-  {
-    Visible,
-    Hidden,
-    Collapse
-  }
+    public enum Visibility : byte
+    {
+        Visible,
+        Hidden,
+        Collapse
+    }
 }

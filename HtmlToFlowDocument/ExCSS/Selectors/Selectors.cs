@@ -3,56 +3,56 @@ using System.Collections.Generic;
 
 namespace ExCSS
 {
-  internal abstract class Selectors : StylesheetNode, IEnumerable<ISelector>
-  {
-    protected readonly List<ISelector> _selectors;
-
-    protected Selectors()
+    internal abstract class Selectors : StylesheetNode, IEnumerable<ISelector>
     {
-      _selectors = new List<ISelector>();
-    }
+        protected readonly List<ISelector> _selectors;
 
-    public Priority Specifity
-    {
-      get
-      {
-        var sum = new Priority();
-
-        for (var i = 0; i < _selectors.Count; i++)
+        protected Selectors()
         {
-          sum += _selectors[i].Specifity;
+            _selectors = new List<ISelector>();
         }
 
-        return sum;
-      }
-    }
+        public Priority Specifity
+        {
+            get
+            {
+                var sum = new Priority();
 
-    public string Text => this.ToCss();
-    public int Length => _selectors.Count;
-    public ISelector this[int index]
-    {
-      get { return _selectors[index]; }
-      set { _selectors[index] = value; }
-    }
+                for (var i = 0; i < _selectors.Count; i++)
+                {
+                    sum += _selectors[i].Specifity;
+                }
 
-    public void Add(ISelector selector)
-    {
-      _selectors.Add(selector);
-    }
+                return sum;
+            }
+        }
 
-    public void Remove(ISelector selector)
-    {
-      _selectors.Remove(selector);
-    }
+        public string Text => this.ToCss();
+        public int Length => _selectors.Count;
+        public ISelector this[int index]
+        {
+            get { return _selectors[index]; }
+            set { _selectors[index] = value; }
+        }
 
-    public IEnumerator<ISelector> GetEnumerator()
-    {
-      return _selectors.GetEnumerator();
-    }
+        public void Add(ISelector selector)
+        {
+            _selectors.Add(selector);
+        }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-      return GetEnumerator();
+        public void Remove(ISelector selector)
+        {
+            _selectors.Remove(selector);
+        }
+
+        public IEnumerator<ISelector> GetEnumerator()
+        {
+            return _selectors.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
-  }
 }

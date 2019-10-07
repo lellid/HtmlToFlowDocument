@@ -4,29 +4,29 @@ using System.Linq;
 
 namespace ExCSS
 {
-  public static class Colors
-  {
-    public static IEnumerable<string> Names => NamedColors.Keys;
-
-    public static Color? GetColor(string name)
+    public static class Colors
     {
-      Color color;
-      if (NamedColors.TryGetValue(name, out color))
-      {
-        return color;
-      }
+        public static IEnumerable<string> Names => NamedColors.Keys;
 
-      return null;
-    }
-
-    public static string GetName(Color color)
-    {
-      return (from pair in NamedColors where pair.Value.Equals(color) select pair.Key).FirstOrDefault();
-    }
-
-    private static readonly Dictionary<string, Color> NamedColors =
-        new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
+        public static Color? GetColor(string name)
         {
+            Color color;
+            if (NamedColors.TryGetValue(name, out color))
+            {
+                return color;
+            }
+
+            return null;
+        }
+
+        public static string GetName(Color color)
+        {
+            return (from pair in NamedColors where pair.Value.Equals(color) select pair.Key).FirstOrDefault();
+        }
+
+        private static readonly Dictionary<string, Color> NamedColors =
+            new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
+            {
                 {"aliceblue", new Color(240, 248, 255)},
                 {"antiquewhite", new Color(250, 235, 215)},
                 {"aqua", new Color(0, 255, 255)},
@@ -204,7 +204,7 @@ namespace ExCSS
                 {"window", new Color(255, 255, 255)},
                 {"windowframe", new Color(204, 204, 204)},
                 {"windowtext", new Color(0, 0, 0)}
-        };
-
-  }
+            };
+       
+    }
 }

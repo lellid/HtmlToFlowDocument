@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class UpdateFrequencyMediaFeature : MediaFeature
-  {
-    private static readonly IValueConverter TheConverter = Map.UpdateFrequencies.ToConverter();
-
-    public UpdateFrequencyMediaFeature()
-        : base(FeatureNames.UpdateFrequency)
+    internal sealed class UpdateFrequencyMediaFeature : MediaFeature
     {
+        private static readonly IValueConverter TheConverter = Map.UpdateFrequencies.ToConverter();
+
+        public UpdateFrequencyMediaFeature()
+            : base(FeatureNames.UpdateFrequency)
+        {
+        }
+
+        internal override IValueConverter Converter => TheConverter;
+
     }
-
-    internal override IValueConverter Converter => TheConverter;
-
-  }
 }

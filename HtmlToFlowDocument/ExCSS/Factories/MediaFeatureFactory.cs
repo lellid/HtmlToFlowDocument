@@ -3,31 +3,31 @@ using System.Collections.Generic;
 
 namespace ExCSS
 {
-  internal sealed class MediaFeatureFactory
-  {
-    private delegate MediaFeature Creator();
-
-    private static readonly Lazy<MediaFeatureFactory> Lazy =
-      new Lazy<MediaFeatureFactory>(() => new MediaFeatureFactory());
-
-    internal static MediaFeatureFactory Instance => Lazy.Value;
-
-    private MediaFeatureFactory()
+    internal sealed class MediaFeatureFactory
     {
-    }
+        private delegate MediaFeature Creator();
 
-    public MediaFeature Create(string name)
-    {
-      Creator creator;
-      return _creators.TryGetValue(name, out creator)
-          ? creator()
-          : default(MediaFeature);
-    }
+        private static readonly Lazy<MediaFeatureFactory> Lazy =
+          new Lazy<MediaFeatureFactory>(() => new MediaFeatureFactory());
 
-    #region Creators
-    private readonly Dictionary<string, Creator> _creators =
-        new Dictionary<string, Creator>(StringComparer.OrdinalIgnoreCase)
+        internal static MediaFeatureFactory Instance => Lazy.Value;
+
+        private MediaFeatureFactory()
         {
+        }
+
+        public MediaFeature Create(string name)
+        {
+            Creator creator;
+            return _creators.TryGetValue(name, out creator)
+                ? creator()
+                : default(MediaFeature);
+        }
+
+        #region Creators
+        private readonly Dictionary<string, Creator> _creators =
+            new Dictionary<string, Creator>(StringComparer.OrdinalIgnoreCase)
+            {
                 {FeatureNames.MinWidth, () => new WidthMediaFeature(FeatureNames.MinWidth)},
                 {FeatureNames.MaxWidth, () => new WidthMediaFeature(FeatureNames.MaxWidth)},
                 {FeatureNames.Width, () => new WidthMediaFeature(FeatureNames.Width)},
@@ -76,7 +76,7 @@ namespace ExCSS
                 {FeatureNames.Scripting, () => new ScriptingMediaFeature()},
                 {FeatureNames.Pointer, () => new PointerMediaFeature()},
                 {FeatureNames.Hover, () => new HoverMediaFeature()}
-        };
-    #endregion
-  }
+            };
+        #endregion
+    }
 }

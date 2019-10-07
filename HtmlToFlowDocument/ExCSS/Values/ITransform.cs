@@ -1,7 +1,7 @@
 ﻿namespace ExCSS
 {
-  public interface ITransform
-  {
-    TransformMatrix ComputeMatrix();
-  }
+    public interface ITransform
+    {
+        TransformMatrix ComputeMatrix();
+    }
 }

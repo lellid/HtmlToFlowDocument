@@ -1,20 +1,20 @@
 ﻿
 namespace ExCSS
 {
-  using static Converters;
+    using static Converters;
 
-  internal sealed class ListStyleProperty : ShorthandProperty
-  {
-    private static readonly IValueConverter StyleConverter = WithAny(
-        ListStyleConverter.Option().For(PropertyNames.ListStyleType),
-        ListPositionConverter.Option().For(PropertyNames.ListStylePosition),
-        OptionalImageSourceConverter.Option().For(PropertyNames.ListStyleImage)).OrDefault();
-
-    internal ListStyleProperty()
-        : base(PropertyNames.ListStyle, PropertyFlags.Inherited)
+    internal sealed class ListStyleProperty : ShorthandProperty
     {
-    }
+        private static readonly IValueConverter StyleConverter = WithAny(
+            ListStyleConverter.Option().For(PropertyNames.ListStyleType),
+            ListPositionConverter.Option().For(PropertyNames.ListStylePosition),
+            OptionalImageSourceConverter.Option().For(PropertyNames.ListStyleImage)).OrDefault();
 
-    internal override IValueConverter Converter => StyleConverter;
-  }
+        internal ListStyleProperty()
+            : base(PropertyNames.ListStyle, PropertyFlags.Inherited)
+        {
+        }
+
+        internal override IValueConverter Converter => StyleConverter;
+    }
 }

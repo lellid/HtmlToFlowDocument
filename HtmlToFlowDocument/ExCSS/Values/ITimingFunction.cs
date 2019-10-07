@@ -1,6 +1,6 @@
 ﻿namespace ExCSS
 {
-  public interface ITimingFunction
-  {
-  }
+    public interface ITimingFunction
+    {
+    }
 }

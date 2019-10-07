@@ -1,75 +1,75 @@
 ﻿
 namespace ExCSS
 {
-  public abstract class Rule : StylesheetNode, IRule
-  {
-    private IRule _parentRule;
-
-    internal Rule(RuleType type, StylesheetParser parser)
+    public abstract class Rule : StylesheetNode, IRule
     {
-      Type = type;
-      Parser = parser;
-    }
+        private IRule _parentRule;
 
-    internal StylesheetParser Parser { get; }
-    public Stylesheet Owner { get; internal set; }
-    public RuleType Type { get; }
-
-    public string Text
-    {
-      get { return this.ToCss(); }
-      set
-      {
-        var rule = Parser.ParseRule(value);
-
-        if (rule == null)
+        internal Rule(RuleType type, StylesheetParser parser)
         {
-          throw new ParseException("Unable to parse rule");
+            Type = type;
+            Parser = parser;
         }
-        if (rule.Type != Type)
-        {
-          throw new ParseException("Invalid rule type");
-        }
-        ReplaceWith(rule);
-      }
-    }
 
-    public IRule Parent
-    {
-      get { return _parentRule; }
-      internal set
-      {
-        _parentRule = value;
+        internal StylesheetParser Parser { get; }
+        public Stylesheet Owner { get; internal set; }
+        public RuleType Type { get; }
 
-        if (value != null)
+        public string Text
         {
-          Owner = _parentRule.Owner;
-        }
-      }
-    }
+            get { return this.ToCss(); }
+            set
+            {
+                var rule = Parser.ParseRule(value);
 
-    protected virtual void ReplaceWith(IRule rule)
-    {
-      ReplaceAll(rule);
-    }
+                if (rule == null)
+                {
+                    throw new ParseException("Unable to parse rule");
+                }
+                if (rule.Type != Type)
+                {
+                    throw new ParseException("Invalid rule type");
+                }
+                ReplaceWith(rule);
+            }
+        }
 
-    protected void ReplaceSingle(IStylesheetNode oldNode, IStylesheetNode newNode)
-    {
-      if (oldNode != null)
-      {
-        if (newNode != null)
+        public IRule Parent
         {
-          ReplaceChild(oldNode, newNode);
+            get { return _parentRule; }
+            internal set
+            {
+                _parentRule = value;
+
+                if (value != null)
+                {
+                    Owner = _parentRule.Owner;
+                }
+            }
         }
-        else
+
+        protected virtual void ReplaceWith(IRule rule)
         {
-          RemoveChild(oldNode);
+            ReplaceAll(rule);
         }
-      }
-      else if (newNode != null)
-      {
-        AppendChild(newNode);
-      }
+
+        protected void ReplaceSingle(IStylesheetNode oldNode, IStylesheetNode newNode)
+        {
+            if (oldNode != null)
+            {
+                if (newNode != null)
+                {
+                    ReplaceChild(oldNode, newNode);
+                }
+                else
+                {
+                    RemoveChild(oldNode);
+                }
+            }
+            else if (newNode != null)
+            {
+                AppendChild(newNode);
+            }
+        }
     }
-  }
 }
