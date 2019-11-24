@@ -54,6 +54,14 @@ namespace HtmlToFlowDocument.Rendering
     /// </value>
     public bool AttachDomAsTags { get; set; }
 
+    /// <summary>
+    /// Gets or sets the name of flow document.
+    /// </summary>
+    /// <value>
+    /// The name of flow document.
+    /// </value>
+    public string NameOfFlowDocument { get; set; } = "_guiFlowDocument";
+
 
     /// <summary>
     /// Renders the specified DOM flow document into a Wpf flow document.
@@ -99,10 +107,10 @@ namespace HtmlToFlowDocument.Rendering
         case FlowDocument flowDocument:
           {
             // make sure the standard colors were set
-            flowDocument.Foreground = 0xFF;
-            flowDocument.Background = -1;
+            flowDocument.Foreground = ExCSS.Color.Black;
+            flowDocument.Background = ExCSS.Color.White;
 
-            var flowDocumente = new swd.FlowDocument() { Name = "_guiFlowDocument" };
+            var flowDocumente = new swd.FlowDocument() { Name = NameOfFlowDocument };
 
             if (flowDocument.Background.HasValue)
               flowDocumente.Background = GetBrushFromColor(flowDocument.Background.Value);
@@ -134,34 +142,46 @@ namespace HtmlToFlowDocument.Rendering
             {
               imagee.SetBinding(System.Windows.Controls.Image.SourceProperty, $"ImageProvider[{image.Source}]");
             }
-            if (image.Width.HasValue)
+
+            if (image.Width != null)
             {
-              if (image.IsWidthInPercentOfPage)
+              if (image.Width.IsPurelyAbsolute(out var widthPx))
               {
-                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
-                binding.ElementName = "_guiFlowDocument"; // the flow document must be named with _guiFlowDocument
-                binding.Converter = RelativeSizeConverter.Instance;
-                binding.ConverterParameter = image.Width.Value;
-                imagee.SetBinding(System.Windows.Controls.Image.WidthProperty, binding);
+                imagee.Width = widthPx;
               }
               else
               {
-                imagee.Width = image.Width.Value;
+                var multibinding = new MultiBinding();
+                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
+                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
+                multibinding.Bindings.Add(binding);
+                binding = new Binding("PageHeight"); // binds to the PageHeight property of the flow document
+                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
+                multibinding.Bindings.Add(binding);
+                multibinding.Converter = CompoundLengthConverter.Instance;
+                multibinding.ConverterParameter = GetCompoundLengthConverterParameters(image.Width);
+                imagee.SetBinding(System.Windows.Controls.Image.WidthProperty, multibinding);
               }
             }
-            if (image.Height.HasValue)
+
+            if (image.Height != null)
             {
-              if (image.IsHeightInPercentOfPage)
+              if (image.Height.IsPurelyAbsolute(out var heightPx))
               {
-                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
-                binding.ElementName = "_guiFlowDocument"; // the flow document must be named with _guiFlowDocument
-                binding.Converter = RelativeSizeConverter.Instance;
-                binding.ConverterParameter = image.Height.Value;
-                imagee.SetBinding(System.Windows.Controls.Image.HeightProperty, binding);
+                imagee.Height = heightPx;
               }
               else
               {
-                imagee.Height = image.Height.Value;
+                var multibinding = new MultiBinding();
+                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
+                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
+                multibinding.Bindings.Add(binding);
+                binding = new Binding("PageHeight"); // binds to the PageHeight property of the flow document
+                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
+                multibinding.Bindings.Add(binding);
+                multibinding.Converter = CompoundLengthConverter.Instance;
+                multibinding.ConverterParameter = GetCompoundLengthConverterParameters(image.Height);
+                imagee.SetBinding(System.Windows.Controls.Image.HeightProperty, multibinding);
               }
             }
             wpf = imagee;
@@ -201,7 +221,7 @@ namespace HtmlToFlowDocument.Rendering
             }
             if (p.TextIndent.HasValue)
             {
-              pe.TextIndent = p.TextIndent.Value;
+              pe.TextIndent = p.TextIndent.Value.IsAbsolute ? p.TextIndent.Value.ToPixel() : 0;
             }
             wpf = pe;
           }
@@ -291,7 +311,9 @@ namespace HtmlToFlowDocument.Rendering
 
         if (e.FontSize.HasValue)
         {
-          te.FontSize = e.FontSize.Value;
+          var fs = e.FontSize.Value;
+          fs = Math.Max(0.003, fs);
+          te.FontSize = fs;
         }
 
         if (e.FontStyle.HasValue)
@@ -426,6 +448,34 @@ namespace HtmlToFlowDocument.Rendering
       return wpf;
     }
 
+    private static object GetCompoundLengthConverterParameters(CompoundLength compoundLength)
+    {
+      var converterParameters = new List<object>();
+      foreach (var entry in compoundLength)
+      {
+        switch (entry.Key)
+        {
+          case ExCSS.Length.Unit.Px:
+            converterParameters.Add((0, entry.Value.Value));
+            break;
+          case ExCSS.Length.Unit.Vw:
+            converterParameters.Add((1, entry.Value.Value));
+            break;
+          case ExCSS.Length.Unit.Vh:
+            converterParameters.Add((2, entry.Value.Value));
+            break;
+          case ExCSS.Length.Unit.Vmin:
+            converterParameters.Add((3, entry.Value.Value));
+            break;
+          case ExCSS.Length.Unit.Vmax:
+            converterParameters.Add((4, entry.Value.Value));
+            break;
+          default:
+            throw new NotImplementedException();
+        }
+      }
+      return converterParameters;
+    }
 
     private object CreateTextElement_SeparateSentences(string text)
     {
@@ -596,30 +646,25 @@ namespace HtmlToFlowDocument.Rendering
       }
     }
 
-    public System.Windows.Media.Color ToColor(int color)
+    public System.Windows.Media.Color ToColor(ExCSS.Color color)
     {
-      uint c = (uint)color;
-
-      byte a = (byte)(c & 0xFF);
-      c >>= 8;
-      byte b = (byte)(c & 0xFF);
-      c >>= 8;
-      byte g = (byte)(c & 0xFF);
-      c >>= 8;
-      byte r = (byte)(c & 0xFF);
-
       if (InvertColors)
-        return System.Windows.Media.Color.FromArgb(a, (byte)(255 - r), (byte)(255 - g), (byte)(255 - b));
+        return System.Windows.Media.Color.FromArgb(color.A, (byte)(255 - color.R), (byte)(255 - color.G), (byte)(255 - color.B));
       else
-        return System.Windows.Media.Color.FromArgb(a, r, g, b);
+        return System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
     }
 
     public System.Windows.Thickness ToThickness(Thickness t)
     {
-      if (t.Left == t.Right && t.Left == t.Top && t.Left == t.Bottom)
-        return new System.Windows.Thickness(t.Left);
+      if (t.Left == t.Right && t.Left == t.Top && t.Left == t.Bottom && t.Left.IsAbsolute)
+        return new System.Windows.Thickness(t.Left.ToPixel());
       else
-        return new System.Windows.Thickness(t.Left, t.Top, t.Right, t.Bottom);
+        return new System.Windows.Thickness(
+          t.Left.IsAbsolute ? Math.Max(0, t.Left.ToPixel()) : 0, // Note: we have to clamp to values >=0, since Wpf does not accept negative values
+          t.Top.IsAbsolute ? Math.Max(0, t.Top.ToPixel()) : 0,
+          t.Right.IsAbsolute ? Math.Max(0, t.Right.ToPixel()) : 0,
+          t.Bottom.IsAbsolute ? Math.Max(0, t.Bottom.ToPixel()) : 0
+          );
     }
 
     private System.Windows.TextAlignment ToTextAlignment(TextAlignment value)
@@ -726,14 +771,14 @@ namespace HtmlToFlowDocument.Rendering
     }
 
 
-    Dictionary<int, System.Windows.Media.Brush> _cachedSolidBrushes = new Dictionary<int, System.Windows.Media.Brush>();
+    Dictionary<ExCSS.Color, System.Windows.Media.Brush> _cachedSolidBrushes = new Dictionary<ExCSS.Color, System.Windows.Media.Brush>();
 
     /// <summary>
     /// Gets a solid color brush from the color specified.
     /// </summary>
     /// <param name="color">The color in RGBA format (A is the least significant byte).</param>
     /// <returns>A solid color brush.</returns>
-    public System.Windows.Media.Brush GetBrushFromColor(int color)
+    public System.Windows.Media.Brush GetBrushFromColor(ExCSS.Color color)
     {
       if (!_cachedSolidBrushes.TryGetValue(color, out var brush))
       {

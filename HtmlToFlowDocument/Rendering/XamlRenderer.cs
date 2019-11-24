@@ -132,27 +132,29 @@ namespace HtmlToFlowDocument.Rendering
             wr.WriteAttributeString("Source", string.Format("{{Binding ImageProvider[{0}]}}", image.Source));
           }
 
-          if (image.Width.HasValue)
+          if (image.Width != null)
           {
-            if (image.IsWidthInPercentOfPage)
+            if (image.Width.IsPurelyAbsolute(out var widthPx))
             {
-              wr.WriteAttributeString("Width", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Width.Value) + "}");
+              wr.WriteAttributeString("Width", XmlConvert.ToString(widthPx));
             }
             else
             {
-              wr.WriteAttributeString("Width", XmlConvert.ToString(image.Width.Value));
+              // TODO too complex to convert to XAML?
+              // wr.WriteAttributeString("Width", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Width.Value) + "}");
             }
           }
 
-          if (image.Height.HasValue)
+          if (image.Height != null)
           {
-            if (image.IsHeightInPercentOfPage)
+            if (image.Height.IsPurelyAbsolute(out var heightPx))
             {
-              wr.WriteAttributeString("Height", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Height.Value) + "}");
+              wr.WriteAttributeString("Height", XmlConvert.ToString(heightPx));
             }
             else
             {
-              wr.WriteAttributeString("Height", XmlConvert.ToString(image.Height.Value));
+              // TODO too complex to convert to XAML?
+              // wr.WriteAttributeString("Height", "{Binding Path=ColumnWidth, ElementName=_guiFlowDocument, Converter={StaticResource relativeSizeConverter}, ConverterParameter=" + XmlConvert.ToString(image.Height.Value) + "}");
             }
           }
           break;
@@ -171,7 +173,7 @@ namespace HtmlToFlowDocument.Rendering
           }
           if (p.TextIndent.HasValue)
           {
-            wr.WriteAttributeString("TextIndent", XmlConvert.ToString(p.TextIndent.Value));
+            wr.WriteAttributeString("TextIndent", XmlConvert.ToString(p.TextIndent.Value.IsAbsolute ? p.TextIndent.Value.ToPixel() : 0));
           }
           break;
         case TableCell tc:
@@ -249,10 +251,18 @@ namespace HtmlToFlowDocument.Rendering
         return string.Format("#{0:X8}", c);
     }
 
+    public static string ToColorString(ExCSS.Color color)
+    {
+      if (0xFF == color.A) // fully opaque
+        return string.Format("#{0:X2}{1:X2}{2:X2}", color.R, color.G, color.B);
+      else
+        return string.Format("#{0:X2}{0:X2}{0:X2}{0:X2}", color.A, color.R, color.G, color.B);
+    }
+
     public static string ToThicknessString(Thickness t)
     {
       if (t.Left == t.Right && t.Left == t.Top && t.Left == t.Bottom)
-        return t.Left.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}", t.Left);
       else
         return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2},{3}", t.Left, t.Top, t.Right, t.Bottom);
     }

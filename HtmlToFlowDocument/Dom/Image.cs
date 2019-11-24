@@ -10,13 +10,21 @@ namespace HtmlToFlowDocument.Dom
   {
     public string Source { get; set; }
 
-    public double? Width { get; set; }
+    /// <summary>
+    /// Gets or sets the width of the element. It contains of one or multiple length values, which must be added up to get the final length.
+    /// </summary>
+    /// <value>
+    /// The width of the element.
+    /// </value>
+    public CompoundLength Width { get; set; }
 
-    public bool IsWidthInPercentOfPage { get; set; }
-
-    public double? Height { get; set; }
-
-    public bool IsHeightInPercentOfPage { get; set; }
+    /// <summary>
+    /// Gets or sets the height of the element. It contains of one or multiple length values, which must be added up to get the final length.
+    /// </summary>
+    /// <value>
+    /// The height of the element.
+    /// </value>
+    public CompoundLength Height { get; set; }
 
     protected override void ThrowOnInvalidChildElement(TextElement child)
     {

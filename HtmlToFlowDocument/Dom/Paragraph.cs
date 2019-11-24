@@ -10,7 +10,7 @@ namespace HtmlToFlowDocument.Dom
   {
     public TextDecorations? TextDecorations { get; set; }
 
-    public double? TextIndent { get; set; }
+    public ExCSS.Length? TextIndent { get; set; }
 
     protected override void ThrowOnInvalidChildElement(TextElement child)
     {

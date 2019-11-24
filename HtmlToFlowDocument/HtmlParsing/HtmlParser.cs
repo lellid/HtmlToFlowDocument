@@ -60,7 +60,7 @@ using System.Xml;
 // reading a table and ignore them otherwise? This may be too much of a load on the parser, I think it's better if the converter
 // deals with it
 
-namespace HtmlToFlowDocument
+namespace HtmlToFlowDocument.HtmlParsing
 {
   /// <summary>
   ///     HtmlParser class accepts a string of possibly badly formed Html, parses it and returns a string

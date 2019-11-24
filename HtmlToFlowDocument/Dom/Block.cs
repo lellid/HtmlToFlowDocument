@@ -12,7 +12,7 @@ namespace HtmlToFlowDocument.Dom
 
     public Thickness? Padding { get; set; }
 
-    public int? BorderBrush { get; set; }
+    public ExCSS.Color? BorderBrush { get; set; }
 
     public Thickness? BorderThickness { get; set; }
 

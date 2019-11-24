@@ -34,7 +34,7 @@ namespace HtmlToFlowDocument.Dom
       }
     }
 
-    public int? BorderBrush { get; set; }
+    public ExCSS.Color? BorderBrush { get; set; }
 
     public Thickness? BorderThickness { get; set; }
 

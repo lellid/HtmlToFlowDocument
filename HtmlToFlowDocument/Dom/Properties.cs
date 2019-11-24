@@ -59,12 +59,12 @@ namespace HtmlToFlowDocument.Dom
 
   public struct Thickness
   {
-    public double Left;
-    public double Right;
-    public double Top;
-    public double Bottom;
+    public ExCSS.Length Left;
+    public ExCSS.Length Right;
+    public ExCSS.Length Top;
+    public ExCSS.Length Bottom;
 
-    public Thickness WithLeft(double l)
+    public Thickness WithLeft(ExCSS.Length l)
     {
       return new Thickness { Bottom = this.Bottom, Top = this.Top, Right = this.Right, Left = l };
     }
@@ -602,34 +602,10 @@ namespace HtmlToFlowDocument.Dom
       else return null;
     }
 
-    // Create syntactically optimized four-value Thickness
-    public static Thickness? GetThickness(
-      string left,
-      string right,
-      string top,
-      string bottom,
-      double defaultFontSize)
-    {
-      var l = GetFontSize(left, defaultFontSize);
-      var r = GetFontSize(right, defaultFontSize);
-      var t = GetFontSize(top, defaultFontSize);
-      var b = GetFontSize(bottom, defaultFontSize);
 
-      var result = new Thickness();
 
-      if (l.HasValue)
-        result.Left = l.Value;
-      if (r.HasValue)
-        result.Right = r.Value;
-      if (t.HasValue)
-        result.Top = t.Value;
-      if (b.HasValue)
-        result.Bottom = b.Value;
 
-      return l.HasValue || r.HasValue || t.HasValue || b.HasValue ? (Thickness?)result : null;
-    }
-
-    public static Thickness? GetThickness(double? left, double? right, double? top, double? bottom)
+    public static Thickness? GetThickness(ExCSS.Length? left, ExCSS.Length? right, ExCSS.Length? top, ExCSS.Length? bottom)
     {
       var result = new Thickness();
 

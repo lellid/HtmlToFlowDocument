@@ -7,10 +7,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using ExCSS;
 
 namespace HtmlToFlowDocument
 {
-  public class CssStylesheet
+  /// <summary>
+  /// Manages one or more stylesheets that belong to a given (X)Html document.
+  /// </summary>
+  public class CssStylesheets
   {
 
     /// <summary>
@@ -35,14 +39,14 @@ namespace HtmlToFlowDocument
 
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CssStylesheet"/> class.
+    /// Initializes a new instance of the <see cref="CssStylesheets"/> class.
     /// </summary>
     /// <param name="htmlElement">The root element of the HTML text to parse.</param>
     /// <param name="cssStyleSheetProvider">The CSS style sheet provider.
     /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
     /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
     /// The return value is the contents of the CSS style sheet with that name.</param>
-    public CssStylesheet(XmlElement htmlElement, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
+    public CssStylesheets(XmlElement htmlElement, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
     {
       _cssStyleSheetProvider = cssStyleSheetProvider;
       _htmlFileName = htmlFileName;
@@ -65,7 +69,7 @@ namespace HtmlToFlowDocument
       {
         case "link":
           {
-            if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel") == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
+            if (htmlElement.HasAttributes && htmlElement.GetAttribute("rel").ToLowerInvariant() == "stylesheet" && htmlElement.GetAttribute("type") == "text/css")
             {
               var fileName = htmlElement.GetAttribute("href");
               var cssContent = _cssStyleSheetProvider?.Invoke(fileName, _htmlFileName);
@@ -135,111 +139,34 @@ namespace HtmlToFlowDocument
       return text.Substring(0, commentStart) + " " + RemoveComments(text.Substring(commentEnd + 2));
     }
 
+    ElementRules _elementRules = new ElementRules();
 
     /// <summary>
-    /// Get all styles that apply to the provided element as string ( individual styles are semicolon-separated).
+    /// Gets the element properties new.
     /// </summary>
-    /// <param name="elementName">Name of the element.</param>
+    /// <param name="elementName">The XHTML element. Has to be the topmost element on the sourceContext.</param>
     /// <param name="sourceContext">The source context.</param>
-    /// <returns>All styles that apply to the provided element as string ( individual styles are semicolon-separated).</returns>
-    public string GetStyle(string elementName, List<XmlElement> sourceContext)
+    /// <param name="propertyDictionary">The property dictionary to store the element properties to.</param>
+    public void GetElementProperties(XmlElement htmlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, Dictionary<string, object> propertyDictionary)
     {
       Debug.Assert(sourceContext.Count > 0);
-      Debug.Assert(elementName == sourceContext[sourceContext.Count - 1].LocalName);
+      Debug.Assert(object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement));
 
-
-      for (int i = _styleSheets.Count - 1; i >= 0; --i) // in reverse order because highest priority stylesheet is at the end of the lit
+      _elementRules.CreateFor(sourceContext, _styleSheets);
+      var allPropertyNames = _elementRules.GetAllPropertyNames();
+      foreach (var pn in allPropertyNames)
       {
-        var styleSheet = _styleSheets[i];
-        foreach (var rule in styleSheet.Rules.OfType<ExCSS.StyleRule>())
-        {
-          var selector = rule.SelectorText;
-          var selectorLevels = selector.Split(' ');
-
-          var indexInSelector = selectorLevels.Length - 1;
-          var indexInContext = sourceContext.Count - 1;
-          var selectorLevel = selectorLevels[indexInSelector].Trim();
-
-          if (MatchSelectorLevel(selectorLevel, sourceContext[sourceContext.Count - 1]))
-          {
-            var ruleText = rule.Text;
-
-            var idx = ruleText.IndexOf("{");
-            if (idx >= 0) // Strip off curly braces if ruleText is enclosed in them
-            {
-              ruleText = ruleText.Substring(idx + 1);
-              ruleText = ruleText.TrimEnd();
-              ruleText = ruleText.TrimEnd('}');
-            }
-
-            return ruleText;
-          }
-        }
+        _elementRules.GetProperty(pn, propertyDictionary);
       }
-
-      return null;
     }
 
     /// <summary>
-    /// Determines if the selectorLevel applies to a given <paramref name="xmlElement"/> by analyzing the selectorLevel and then
-    /// comparing it to either the local name of the <paramref name="xmlElement"/>, its 'id' attribute, or its 'class' attribute.
+    /// Given a relative file name referenced in an Html document, the function gets the absolute file name of this file.
     /// </summary>
-    /// <param name="selectorLevel">The selector level.</param>
-    /// <param name="xmlElement">The XML element.</param>
-    /// <returns>True if the <paramref name="selectorLevel"/> applies to the <paramref name="xmlElement"/>; otherwise, False.</returns>
-    private bool MatchSelectorLevel(string selectorLevel, XmlElement xmlElement)
-    {
-      if (selectorLevel.Length == 0)
-      {
-        return false;
-      }
-
-      var indexOfDot = selectorLevel.IndexOf('.');
-      var indexOfPound = selectorLevel.IndexOf('#');
-
-      string selectorClass = null;
-      string selectorId = null;
-      string selectorTag = null;
-      if (indexOfDot >= 0)
-      {
-        if (indexOfDot > 0)
-        {
-          selectorTag = selectorLevel.Substring(0, indexOfDot);
-        }
-        selectorClass = selectorLevel.Substring(indexOfDot + 1);
-      }
-      else if (indexOfPound >= 0)
-      {
-        if (indexOfPound > 0)
-        {
-          selectorTag = selectorLevel.Substring(0, indexOfPound);
-        }
-        selectorId = selectorLevel.Substring(indexOfPound + 1);
-      }
-      else
-      {
-        selectorTag = selectorLevel;
-      }
-
-      if (selectorTag != null && selectorTag != xmlElement.LocalName)
-      {
-        return false;
-      }
-
-      if (selectorId != null && Converter.GetAttribute(xmlElement, "id") != selectorId)
-      {
-        return false;
-      }
-
-      if (selectorClass != null && Converter.GetAttribute(xmlElement, "class") != selectorClass)
-      {
-        return false;
-      }
-
-      return true;
-    }
-
-    public static string GetAbsoluteCssFileName(string fileName, string htmlFileName)
+    /// <param name="fileName">Name of the file.</param>
+    /// <param name="htmlFileName">Name of the HTML file.</param>
+    /// <returns></returns>
+    public static string GetAbsoluteFileNameForFileRelativeToHtmlFile(string fileName, string htmlFileName)
     {
       int idx = htmlFileName.LastIndexOf("/");
       var directory = idx > 0 ? htmlFileName.Substring(0, idx) : string.Empty;

@@ -21,9 +21,9 @@ namespace HtmlToFlowDocument.Dom
 
     public FontWeight? FontWeight { get; set; }
 
-    public int? Foreground { get; set; }
+    public ExCSS.Color? Foreground { get; set; }
 
-    public int? Background { get; set; }
+    public ExCSS.Color? Background { get; set; }
 
 
     /// <summary>
@@ -71,12 +71,12 @@ namespace HtmlToFlowDocument.Dom
     /// <value>
     /// The foreground color this text element would inherit.
     /// </value>
-    public double? ForegroundInheritedOnly
+    public ExCSS.Color? ForegroundInheritedOnly
     {
       get
       {
         var instance = this.Parent;
-        int? result = null;
+        ExCSS.Color? result = null;
         while (instance != null && result == null)
         {
 
@@ -93,12 +93,12 @@ namespace HtmlToFlowDocument.Dom
     /// <value>
     /// The background color this text element would inherit.
     /// </value>
-    public double? BackgroundInheritedOnly
+    public ExCSS.Color? BackgroundInheritedOnly
     {
       get
       {
         var instance = this.Parent;
-        int? result = null;
+        ExCSS.Color? result = null;
         while (instance != null && result == null)
         {
 
