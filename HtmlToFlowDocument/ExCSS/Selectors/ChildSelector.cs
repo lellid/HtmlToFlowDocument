@@ -9,6 +9,9 @@ namespace ExCSS
         protected int _offset;
         protected ISelector _kind;
 
+        public int Step => _step;
+        public int Offset => _offset;
+
         protected ChildSelector(string name)
         {
             _name = name;
