@@ -146,6 +146,42 @@ namespace HtmlToFlowDocument
       return true;
     }
 
+    public bool IsPurelyVw(out double vwValue)
+    {
+      return IsPurelyVw(this, out vwValue);
+    }
+
+    public static bool IsPurelyVw(Dictionary<ExCSS.Length.Unit, ExCSS.Length> compoundLength, out double vwValue)
+    {
+      if (compoundLength.Count == 1 && compoundLength.TryGetValue(ExCSS.Length.Unit.Vw, out var vw))
+      {
+        vwValue = vw.Value;
+        return true;
+      }
+      else
+      {
+        vwValue = double.NaN;
+        return false;
+      }
+    }
+
+    public bool IsPurelyVh(out double vhValue)
+    {
+      return IsPurelyVh(this, out vhValue);
+    }
+    public static bool IsPurelyVh(Dictionary<ExCSS.Length.Unit, ExCSS.Length> compoundLength, out double vhValue)
+    {
+      if (compoundLength.Count == 1 && compoundLength.TryGetValue(ExCSS.Length.Unit.Vh, out var vh))
+      {
+        vhValue = vh.Value;
+        return true;
+      }
+      else
+      {
+        vhValue = double.NaN;
+        return false;
+      }
+    }
 
 
   }

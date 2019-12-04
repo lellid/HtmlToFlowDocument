@@ -192,7 +192,5 @@ namespace HtmlToFlowDocument.Rendering
           yield return c;
       }
     }
-
-
   }
 }

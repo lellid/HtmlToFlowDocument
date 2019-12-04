@@ -160,6 +160,46 @@ namespace HtmlToFlowDocument
       }
     }
 
+
+    /// <summary>
+    /// Gets the element properties new.
+    /// </summary>
+    /// <param name="elementName">The XHTML element. Has to be the topmost element on the sourceContext.</param>
+    /// <param name="sourceContext">The source context.</param>
+    /// <param name="propertyDictionary">The property dictionary to store the element properties to.</param>
+    public void GetElementProperties_Attributes_Only(XmlElement htmlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, Dictionary<string, object> propertyDictionary)
+    {
+      Debug.Assert(sourceContext.Count > 0);
+      Debug.Assert(object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement));
+
+      _elementRules.CreateFor(sourceContext, _styleSheets);
+      var allPropertyNames = _elementRules.GetAllPropertyNames();
+      foreach (var pn in allPropertyNames)
+      {
+        _elementRules.GetProperty_Attributes_Only(pn, propertyDictionary);
+      }
+    }
+
+    /// <summary>
+    /// Gets the element properties new.
+    /// </summary>
+    /// <param name="elementName">The XHTML element. Has to be the topmost element on the sourceContext.</param>
+    /// <param name="sourceContext">The source context.</param>
+    /// <param name="propertyDictionary">The property dictionary to store the element properties to.</param>
+    public void GetElementProperties_CSS_Only(XmlElement htmlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, Dictionary<string, object> propertyDictionary)
+    {
+      Debug.Assert(sourceContext.Count > 0);
+      Debug.Assert(object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement));
+
+      _elementRules.CreateFor(sourceContext, _styleSheets);
+      var allPropertyNames = _elementRules.GetAllPropertyNames();
+      foreach (var pn in allPropertyNames)
+      {
+        _elementRules.GetProperty_CSS_Only(pn, propertyDictionary);
+      }
+    }
+
+
     /// <summary>
     /// Given a relative file name referenced in an Html document, the function gets the absolute file name of this file.
     /// </summary>

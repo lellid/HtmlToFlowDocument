@@ -185,7 +185,9 @@ namespace HtmlToFlowDocument
         { "sourceHtmlFileName", htmlFileName },
         { "font-size", new ExCSS.Length(FontSizeRootPx, ExCSS.Length.Unit.Px) },
         { "width", new ExCSS.Length(100, ExCSS.Length.Unit.Vw) },
-        { "height", new ExCSS.Length(100, ExCSS.Length.Unit.Vh) }
+        { "height", new ExCSS.Length(100, ExCSS.Length.Unit.Vh) },
+        { "max-width", new ExCSS.Length(100, ExCSS.Length.Unit.Vw) },
+        { "max-height", new ExCSS.Length(100, ExCSS.Length.Unit.Vh) }
       };
 
       sourceContext.Add((null, rootProperties));
@@ -890,8 +892,65 @@ namespace HtmlToFlowDocument
         Tag = AttachSourceAsTags ? htmlElement : null,
       };
 
-      xamlImageElement.Width = GetCompoundLengthForContext("width", sourceContext);
-      xamlImageElement.Height = GetCompoundLengthForContext("height", sourceContext);
+      // Image Width and Height
+      // are special insofar that the CSS width and height has priority over the attribute width and height
+      // the attribute width and height are treated as hints about the true dimensions of the image
+      // the CSS width and height then scale the image
+      // if CSS width and height both are set to auto: then the image size is set to its true dimensions
+      // if either CSS width or height are set to auto: then the other dimension is set to its value, and this dimension is set to preserve aspect ratio
+      Dictionary<string, object> attributeProperties = new Dictionary<string, object>();
+      stylesheet.GetElementProperties_Attributes_Only(htmlElement, sourceContext, attributeProperties);
+
+      object localWidth = null;
+      object localHeight = null;
+
+      if (attributeProperties.ContainsKey("width") || attributeProperties.ContainsKey("height"))
+      {
+        attributeProperties.TryGetValue("width", out localWidth);
+        attributeProperties.TryGetValue("height", out localHeight);
+        Dictionary<string, object> cssProperties = new Dictionary<string, object>();
+        stylesheet.GetElementProperties_CSS_Only(htmlElement, sourceContext, cssProperties);
+
+        if (cssProperties.ContainsKey("width"))
+          sourceContext[sourceContext.Count - 1].elementProperties["width"] = cssProperties["width"];
+        if (cssProperties.ContainsKey("height"))
+          sourceContext[sourceContext.Count - 1].elementProperties["height"] = cssProperties["height"];
+      }
+
+      var elementProperties = sourceContext[sourceContext.Count - 1].elementProperties;
+
+      if (elementProperties.ContainsKey("width") && (elementProperties["width"] as string) == "auto" && elementProperties.ContainsKey("height") && (elementProperties["height"] as string) == "auto")
+      {
+        // image should be displayed in its original size
+        xamlImageElement.Width = null;
+        xamlImageElement.Height = null;
+
+      }
+      else if (elementProperties.ContainsKey("width") && (elementProperties["width"] as string) == "auto")
+      {
+        // heigth must be determined, width is the set to keep aspect ratio
+        xamlImageElement.Width = null;
+        xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+      }
+      else if (elementProperties.ContainsKey("height") && (elementProperties["height"] as string) == "auto")
+      {
+        // width must be determined, height is then set to keep aspect ratio
+        xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+        xamlImageElement.Height = null;
+
+      }
+      else
+      {
+        xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+        xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+      }
+
+
+      // max-width and max-height
+      xamlImageElement.MaxWidth = GetMaxWidthOrMaxHeightForContext("max-width", sourceContext);
+      xamlImageElement.MaxHeight = GetMaxWidthOrMaxHeightForContext("max-height", sourceContext);
+
+
 
 
       xamlContainerElement.AppendChild(xamlImageElement); // put the image in the container
@@ -2297,6 +2356,7 @@ namespace HtmlToFlowDocument
             break;
           case "font-size":
             //  Convert from css size into FontSize
+            currentFontSize = GetAbsoluteFontSizeForContext("font-size", sourceContext, null);
             xamlElement.FontSize = currentFontSize;
             break;
           case "line-height":
@@ -2348,14 +2408,14 @@ namespace HtmlToFlowDocument
               if (xamlElement is Section s)
               {
                 // Section does not support indent-> instead we use margin
-                var val = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+                var val = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
                 s.Margin = s.Margin == null ?
                   new Thickness { Left = val ?? new ExCSS.Length(0, ExCSS.Length.Unit.Px) } :
                   s.Margin.Value.WithLeft(Add(s.Margin.Value.Left, val) ?? ZeroPixel);
               }
               else if (xamlElement is Paragraph p)
               {
-                p.TextIndent = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+                p.TextIndent = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
               }
             }
             break;
@@ -2391,19 +2451,19 @@ namespace HtmlToFlowDocument
 
           case "padding-top":
             paddingSet = true;
-            paddingTop = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            paddingTop = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-right":
             paddingSet = true;
-            paddingRight = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            paddingRight = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-bottom":
             paddingSet = true;
-            paddingBottom = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            paddingBottom = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-left":
             paddingSet = true;
-            paddingLeft = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            paddingLeft = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
 
           // NOTE: css names for elementary border styles have side indications in the middle (top/bottom/left/right)
@@ -2428,19 +2488,19 @@ namespace HtmlToFlowDocument
             break;
           case "border-width-top":
             borderThicknessSet = true;
-            borderThicknessTop = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            borderThicknessTop = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-right":
             borderThicknessSet = true;
-            borderThicknessRight = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            borderThicknessRight = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-bottom":
             borderThicknessSet = true;
-            borderThicknessBottom = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            borderThicknessBottom = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-left":
             borderThicknessSet = true;
-            borderThicknessLeft = ResolveRemEmExChP((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+            borderThicknessLeft = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
 
           case "list-style-type":
@@ -2525,9 +2585,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-
-
-    static ExCSS.Length? ResolveRemEmExChP(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    static ExCSS.Length? ResolveRemEmExCh(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
     {
       if (length.HasValue)
       {
@@ -2539,9 +2597,6 @@ namespace HtmlToFlowDocument
             return new ExCSS.Length((float)(l.Value * currentFontSizePx.Value), ExCSS.Length.Unit.Px);
           case ExCSS.Length.Unit.Rem:
             return new ExCSS.Length(l.Value * FontSizeRootPx, ExCSS.Length.Unit.Px);
-          case ExCSS.Length.Unit.Percent:
-            currentFontSizePx = currentFontSizePx ?? GetAbsoluteFontSizeForContext("font-size", sourceContext, currentLevel);
-            return new ExCSS.Length((float)(l.Value * currentFontSizePx.Value / 100), ExCSS.Length.Unit.Px);
           case ExCSS.Length.Unit.Ex:
             // we approximate the small X by using the half of the font size
             currentFontSizePx = currentFontSizePx ?? GetAbsoluteFontSizeForContext("font-size", sourceContext, currentLevel);
@@ -2560,8 +2615,6 @@ namespace HtmlToFlowDocument
         return length;
       }
     }
-
-
 
     static ExCSS.Color? GetColor(object value, ExCSS.Color normalColor)
     {
@@ -2589,7 +2642,7 @@ namespace HtmlToFlowDocument
     {
       if (value is ExCSS.Length l)
       {
-        return ResolveRemEmExChP(l, ref currentFontSize, sourceContext).Value;
+        return ResolveRemEmExCh(l, ref currentFontSize, sourceContext).Value;
       }
       else if (value is string s)
       {
@@ -2605,21 +2658,50 @@ namespace HtmlToFlowDocument
         return ZeroPixel;
     }
 
-    static CompoundLength GetCompoundLengthForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    static CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
+      if (propertyName != "width" && propertyName != "height")
+        throw new ArgumentException("must either be 'width' or 'height'", nameof(propertyName));
+
       CompoundLength result = null;
 
       for (int i = sourceContext.Count - 1; i >= 0; --i)
       {
+        var elementProperties = sourceContext[i].elementProperties;
         CompoundLength currentCompoundLength = null;
-        if (!sourceContext[i].elementProperties.TryGetValue(propertyName, out var w))
+        bool isRelevant = false;
+        if (propertyName == "width")
+        {
+          isRelevant =
+            elementProperties.ContainsKey(propertyName) ||
+            elementProperties.ContainsKey("margin-left") ||
+            elementProperties.ContainsKey("margin-right") ||
+            elementProperties.ContainsKey("border-left-width") ||
+            elementProperties.ContainsKey("border-right-width") ||
+            elementProperties.ContainsKey("padding-left") ||
+            elementProperties.ContainsKey("padding-right");
+        }
+        else if (propertyName == "height")
+        {
+          isRelevant =
+            elementProperties.ContainsKey(propertyName) ||
+            elementProperties.ContainsKey("margin-top") ||
+            elementProperties.ContainsKey("margin-bottom") ||
+            elementProperties.ContainsKey("border-top-width") ||
+            elementProperties.ContainsKey("border-bottom-width") ||
+            elementProperties.ContainsKey("padding-top") ||
+            elementProperties.ContainsKey("padding-bottom");
+        }
+
+        if (!isRelevant)
           continue;
 
+        elementProperties.TryGetValue(propertyName, out var w);
 
         if (w is ExCSS.Length length)
         {
           double? currentFontSize = null;
-          length = ResolveRemEmExChP(length, ref currentFontSize, sourceContext, i).Value;
+          length = ResolveRemEmExCh(length, ref currentFontSize, sourceContext, i).Value;
           currentCompoundLength = new CompoundLength { [length.Type] = length };
         }
         else if (w is string s)
@@ -2632,6 +2714,11 @@ namespace HtmlToFlowDocument
             default:
               throw new NotImplementedException($"The string <<{s}>> is not recognized as a valid length");
           }
+        }
+        else if (w is null)
+        {
+          // consider a value of null as autosize
+          currentCompoundLength = CreateCompoundLengthFromAutoSize(propertyName, sourceContext[i].elementProperties, sourceContext, i);
         }
         else
         {
@@ -2678,42 +2765,42 @@ namespace HtmlToFlowDocument
           {
             if (elementProperties.TryGetValue("margin-left", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("margin-right", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("border-left-width", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("border-right-width", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("padding-left", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("padding-right", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
@@ -2722,42 +2809,42 @@ namespace HtmlToFlowDocument
           {
             if (elementProperties.TryGetValue("margin-top", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("margin-bottom", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("border-top-width", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("border-bottom-width", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("padding-top", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
           {
             if (elementProperties.TryGetValue("padding-bottom", out var v) && v is ExCSS.Length len)
             {
-              len = ResolveRemEmExChP(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
               result.Add(len, -1);
             }
           }
@@ -2769,6 +2856,65 @@ namespace HtmlToFlowDocument
       return result;
     }
 
+    static ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    {
+      if (propertyName != "max-width" && propertyName != "max-height")
+        throw new ArgumentException("must either be 'max-width' or 'max-height'", nameof(propertyName));
+
+      ExCSS.Length? result = null;
+
+      for (int i = sourceContext.Count - 1; i >= 0; --i)
+      {
+        var elementProperties = sourceContext[i].elementProperties;
+        bool isRelevant = elementProperties.ContainsKey(propertyName);
+
+        if (!isRelevant)
+          continue;
+
+        elementProperties.TryGetValue(propertyName, out var w);
+
+        if (w is ExCSS.Length length)
+        {
+          double? currentFontSize = null;
+          length = ResolveRemEmExCh(length, ref currentFontSize, sourceContext, i).Value;
+          if (null == result)
+            result = length;
+          else if (result.Value.Type == ExCSS.Length.Unit.Percent)
+            result = new ExCSS.Length(result.Value.Value * length.Value / 100, length.Type);
+          else
+            throw new InvalidProgramException();
+        }
+        else if (w is string s)
+        {
+          switch (s)
+          {
+            case "none":
+              return null;
+            case "initial":
+              i = Math.Min(1, i);
+              break;
+            case "inherit":
+              break;
+            default:
+              throw new NotImplementedException($"The string <<{s}>> is not recognized as a valid length");
+          }
+        }
+        else if (w is null)
+        {
+          // consider a value of null as 100%, and fall through
+
+        }
+        else
+        {
+          throw new NotImplementedException($"The type <<{w?.GetType()}>> is not recognized as a valid length");
+        }
+
+        if (result != null && result.Value.Type != ExCSS.Length.Unit.Percent)
+          break;
+      }
+
+      return result;
+    }
 
 
 

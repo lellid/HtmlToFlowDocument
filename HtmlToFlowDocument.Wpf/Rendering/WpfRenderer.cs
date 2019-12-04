@@ -63,6 +63,10 @@ namespace HtmlToFlowDocument.Rendering
     public string NameOfFlowDocument { get; set; } = "_guiFlowDocument";
 
 
+    public Binding TemplateBindingViewportWidth { get; set; }
+
+    public Binding TemplateBindingViewportHeight { get; set; }
+
     /// <summary>
     /// Renders the specified DOM flow document into a Wpf flow document.
     /// </summary>
@@ -111,6 +115,10 @@ namespace HtmlToFlowDocument.Rendering
             flowDocument.Background = ExCSS.Color.White;
 
             var flowDocumente = new swd.FlowDocument() { Name = NameOfFlowDocument };
+            if (TemplateBindingViewportWidth is null)
+              TemplateBindingViewportWidth = new Binding("ColumnWidth") { Source = flowDocumente };
+            if (TemplateBindingViewportHeight is null)
+              TemplateBindingViewportHeight = new Binding("ColumnWidth") { Source = flowDocumente }; // Binding to ColumnWidth is not optimal, but better than nothing!
 
             if (flowDocument.Background.HasValue)
               flowDocumente.Background = GetBrushFromColor(flowDocument.Background.Value);
@@ -143,6 +151,19 @@ namespace HtmlToFlowDocument.Rendering
               imagee.SetBinding(System.Windows.Controls.Image.SourceProperty, $"ImageProvider[{image.Source}]");
             }
 
+            if (image.Width == null && image.Height == null)
+            {
+              imagee.Stretch = System.Windows.Media.Stretch.Uniform;
+
+              var binding = new Binding() { RelativeSource = RelativeSource.Self, Path = new System.Windows.PropertyPath("Source") };
+              binding.Converter = ImageToImageWidthConverter.Instance;
+              imagee.SetBinding(System.Windows.Controls.Image.WidthProperty, binding);
+            }
+            else
+            {
+              imagee.Stretch = System.Windows.Media.Stretch.Uniform;
+            }
+
             if (image.Width != null)
             {
               if (image.Width.IsPurelyAbsolute(out var widthPx))
@@ -152,12 +173,8 @@ namespace HtmlToFlowDocument.Rendering
               else
               {
                 var multibinding = new MultiBinding();
-                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
-                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
-                multibinding.Bindings.Add(binding);
-                binding = new Binding("PageHeight"); // binds to the PageHeight property of the flow document
-                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
-                multibinding.Bindings.Add(binding);
+                multibinding.Bindings.Add(new Binding() { Source = TemplateBindingViewportWidth.Source, Path = TemplateBindingViewportWidth.Path });
+                multibinding.Bindings.Add(new Binding() { Source = TemplateBindingViewportHeight.Source, Path = TemplateBindingViewportHeight.Path });
                 multibinding.Converter = CompoundLengthConverter.Instance;
                 multibinding.ConverterParameter = GetCompoundLengthConverterParameters(image.Width);
                 imagee.SetBinding(System.Windows.Controls.Image.WidthProperty, multibinding);
@@ -173,17 +190,55 @@ namespace HtmlToFlowDocument.Rendering
               else
               {
                 var multibinding = new MultiBinding();
-                var binding = new Binding("ColumnWidth"); // binds to the ColumnWidth property of the flow document
-                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
-                multibinding.Bindings.Add(binding);
-                binding = new Binding("PageHeight"); // binds to the PageHeight property of the flow document
-                binding.ElementName = NameOfFlowDocument; // the flow document must be named with _guiFlowDocument
-                multibinding.Bindings.Add(binding);
+                multibinding.Bindings.Add(new Binding() { Source = TemplateBindingViewportWidth.Source, Path = TemplateBindingViewportWidth.Path });
+                multibinding.Bindings.Add(new Binding() { Source = TemplateBindingViewportHeight.Source, Path = TemplateBindingViewportHeight.Path });
                 multibinding.Converter = CompoundLengthConverter.Instance;
                 multibinding.ConverterParameter = GetCompoundLengthConverterParameters(image.Height);
                 imagee.SetBinding(System.Windows.Controls.Image.HeightProperty, multibinding);
               }
+
             }
+
+            // set max-width and max-height
+            if (image.MaxWidth != null && image.MaxWidth.Value.IsAbsolute)
+            {
+              imagee.MaxWidth = image.MaxWidth.Value.ToPixel();
+            }
+            else if (image.MaxWidth == null || image.MaxWidth.Value.Type == ExCSS.Length.Unit.Vw)
+            {
+              double vwValue = image.MaxWidth.HasValue ? image.MaxWidth.Value.Value : 100;
+
+              var binding = new Binding() { Source = TemplateBindingViewportWidth.Source, Path = TemplateBindingViewportWidth.Path };
+              binding.Converter = RelativeSizeConverter.Instance;
+              binding.ConverterParameter = vwValue;
+              imagee.SetBinding(System.Windows.Controls.Image.MaxWidthProperty, binding);
+            }
+            else
+            {
+              throw new InvalidProgramException();
+            }
+
+
+            if (image.MaxHeight != null && image.MaxHeight.Value.IsAbsolute)
+            {
+              imagee.MaxHeight = image.MaxHeight.Value.ToPixel();
+            }
+            else if (image.MaxHeight == null || image.MaxHeight.Value.Type == ExCSS.Length.Unit.Vh)
+            {
+              double vhValue = image.MaxHeight.HasValue ? image.MaxHeight.Value.Value : 100;
+              var binding = new Binding() { Source = TemplateBindingViewportWidth.Source, Path = TemplateBindingViewportWidth.Path };
+              binding.Converter = RelativeSizeConverter.Instance;
+              binding.ConverterParameter = vhValue;
+              imagee.SetBinding(System.Windows.Controls.Image.MaxHeightProperty, binding);
+            }
+            else
+            {
+              throw new InvalidProgramException();
+            }
+
+
+
+
             wpf = imagee;
           }
           break;
@@ -450,7 +505,7 @@ namespace HtmlToFlowDocument.Rendering
 
     private static object GetCompoundLengthConverterParameters(CompoundLength compoundLength)
     {
-      var converterParameters = new List<object>();
+      var converterParameters = new List<(int, double)>();
       foreach (var entry in compoundLength)
       {
         switch (entry.Key)

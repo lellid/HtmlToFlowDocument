@@ -126,6 +126,34 @@ namespace HtmlToFlowDocument
     }
 
     /// <summary>
+    /// Gets a specified property, by searching the attributes of the Html element, but not in the CSS rules.
+    /// </summary>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <returns>If the property is present, the property value; otherwise, null.</returns>
+    public void GetProperty_Attributes_Only(string propertyName, Dictionary<string, object> propertyDictionary)
+    {
+      if (_xmlElement.HasAttribute(propertyName))
+      {
+        PropertyConverter.Convert(propertyName, _xmlElement.GetAttribute(propertyName), propertyDictionary);
+      }
+    }
+
+    /// <summary>
+    /// Gets a specified property, by searching the rules given in the styles that apply to the element, but not by searching in the attributes.
+    /// </summary>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <returns>If the property is present, the property value; otherwise, null.</returns>
+    public void GetProperty_CSS_Only(string propertyName, Dictionary<string, object> propertyDictionary)
+    {
+      Property property;
+
+      if (null != (property = GetPropertyFromRules(propertyName)))
+      {
+        PropertyConverter.Convert(property, propertyDictionary);
+      }
+    }
+
+    /// <summary>
     /// Gets a given property from the style rules.
     /// </summary>
     /// <param name="propertyName">Name of the property.</param>
