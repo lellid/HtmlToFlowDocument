@@ -57,6 +57,10 @@ namespace HtmlToFlowDocument
           case StructValueConverter<double>.StructValue doubleValue:
             propertyDictionary[propertyName] = doubleValue._value;
             break;
+          case DictionaryValueConverter<VerticalAlignment>.EnumeratedValue enVerticalAlignment:
+            if (Map.VerticalAlignments.TryGetValue(enVerticalAlignment.CssText, out var vertValue))
+              propertyDictionary[propertyName] = vertValue;
+            break;
           default:
             propertyDictionary[propertyName] = property.Value;
             break;

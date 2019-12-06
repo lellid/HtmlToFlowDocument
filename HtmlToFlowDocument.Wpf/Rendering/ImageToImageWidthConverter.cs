@@ -41,14 +41,7 @@ namespace HtmlToFlowDocument.Rendering
     {
       if (value is System.Windows.Media.Imaging.BitmapImage bmpImage)
       {
-        if (bmpImage.DpiX <= 16)
-        {
-          return bmpImage.PixelWidth;
-        }
-        else
-        {
-          return bmpImage.Width;
-        }
+        return bmpImage.PixelWidth;
       }
       else if (value is ImageSource imgSource)
       {

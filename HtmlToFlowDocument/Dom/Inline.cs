@@ -8,5 +8,6 @@ namespace HtmlToFlowDocument.Dom
 {
   public abstract class Inline : TextElement
   {
+    public ExCSS.VerticalAlignment? VerticalAlignment { get; set; }
   }
 }

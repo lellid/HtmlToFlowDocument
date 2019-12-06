@@ -22,6 +22,11 @@ namespace HtmlToFlowDocument
   {
     public const float FontSizeRootPx = 16;
 
+    /// <summary>
+    /// True if the converter is e.g. in a 'pre' element, in which whitespace is important.
+    /// </summary>
+    private bool _isWhitespaceSignificant;
+
     // ----------------------------------------------------------------
     //
     // Internal Constants
@@ -141,6 +146,53 @@ namespace HtmlToFlowDocument
     }
 
     /// <summary>
+    /// Converts an XHtml text into a DOM representation, consisting of elements that derive from <see cref="TextElement"/>.
+    /// </summary>
+    /// <param name="xhtmlString">
+    /// The XHtml text to convert.
+    /// </param>
+    /// <param name="asFlowDocument">
+    /// A value of true indicates that we need a FlowDocument as a root element;
+    /// a value of false means that Section or Span elements will be used
+    /// depending on StartFragment/EndFragment comments locations.
+    /// </param>
+    /// <param name="cssStyleSheetProvider">
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
+    /// The return value is the contents of the CSS style sheet with that name.
+    /// </param>
+    /// <returns>
+    /// The root <see cref="TextElement"/> of the Dom tree that represents the XHTML tree.
+    /// </returns>
+    /// <remarks>
+    /// This method has a fallback mechanism: if conversion from XHTML to a XML document fails, the
+    /// text is treated as normal HTML text, and tried to normalized first.
+    /// </remarks>
+    public TextElement ConvertXHtml(string xhtmlString, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string xhtmlFileName)
+    {
+      XmlElement htmlElement;
+
+      // First try to load it directly, this should work if this is truly XHTML
+      try
+      {
+        var doc = new XmlDocument() { PreserveWhitespace = true };
+        doc.LoadXml(xhtmlString);
+        htmlElement = doc.DocumentElement;
+      }
+      catch (Exception)
+      {
+        // if parsing failed, then handle it as normal Html
+        // Create well-formed Xml from Html string
+        htmlElement = HtmlParsing.HtmlParser.ParseHtml(xhtmlString);
+      }
+
+      return Convert(htmlElement, asFlowDocument, cssStyleSheetProvider, xhtmlFileName);
+    }
+
+
+
+    /// <summary>
     /// Converts an XHTML element tree into a DOM representation, consisting of elements that derive from <see cref="TextElement"/>.
     /// </summary>
     /// <param name="htmlElement">
@@ -170,7 +222,10 @@ namespace HtmlToFlowDocument
       TextElement xamlFlowDocumentElement = asFlowDocument ? (Block)new FlowDocument() : (Block)new Section();
       xamlFlowDocumentElement.FontSize = FontSizeRootPx; // base font size of the document
       if (AttachSourceAsTags)
-      { xamlFlowDocumentElement.Tag = htmlElement; }
+      {
+        xamlFlowDocumentElement.Tag = htmlElement;
+        htmlElement.SetAttribute("OriginatedFromSource", htmlFileName);
+      }
 
       // Extract style definitions from all STYLE elements in the document
       CssStylesheets stylesheet = new CssStylesheets(htmlElement, cssStyleSheetProvider, htmlFileName);
@@ -531,6 +586,9 @@ namespace HtmlToFlowDocument
       // Create currentProperties as a compilation of local, set localProperties
       GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
+      if (htmlElement.Name == "pre")
+        _isWhitespaceSignificant = true;
+
       // Create a XAML element corresponding to this html element
       Block xamlElement = new Paragraph() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
       ApplyLocalProperties(xamlElement, sourceContext, isBlock: true);
@@ -542,6 +600,9 @@ namespace HtmlToFlowDocument
       {
         AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
       }
+
+      if (htmlElement.Name == "pre")
+        _isWhitespaceSignificant = true;
 
       // Add the new element to the parent.
       xamlParentElement.AppendChild(xamlElement);
@@ -632,7 +693,11 @@ namespace HtmlToFlowDocument
       }
       else if (htmlNode is XmlText)
       {
-        AddTextRun(xamlParentElement, htmlNode.Value);
+        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: true);
+      }
+      else if (htmlNode is XmlWhitespace && _isWhitespaceSignificant)
+      {
+        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: true);
       }
       else if (htmlNode is XmlElement)
       {
@@ -730,14 +795,17 @@ namespace HtmlToFlowDocument
     }
 
     // Adds a text run to a xaml tree
-    private static void AddTextRun(TextElement xamlElement, string textData)
+    private static void AddTextRun(TextElement xamlElement, string textData, bool preserveControlChars = false)
     {
       // Remove control characters
-      for (int i = 0; i < textData.Length; i++)
+      if (!preserveControlChars)
       {
-        if (char.IsControl(textData[i]))
+        for (int i = 0; i < textData.Length; i++)
         {
-          textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+          if (char.IsControl(textData[i]))
+          {
+            textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+          }
         }
       }
 
@@ -898,51 +966,43 @@ namespace HtmlToFlowDocument
       // the CSS width and height then scale the image
       // if CSS width and height both are set to auto: then the image size is set to its true dimensions
       // if either CSS width or height are set to auto: then the other dimension is set to its value, and this dimension is set to preserve aspect ratio
-      Dictionary<string, object> attributeProperties = new Dictionary<string, object>();
-      stylesheet.GetElementProperties_Attributes_Only(htmlElement, sourceContext, attributeProperties);
-
-      object localWidth = null;
-      object localHeight = null;
-
-      if (attributeProperties.ContainsKey("width") || attributeProperties.ContainsKey("height"))
-      {
-        attributeProperties.TryGetValue("width", out localWidth);
-        attributeProperties.TryGetValue("height", out localHeight);
-        Dictionary<string, object> cssProperties = new Dictionary<string, object>();
-        stylesheet.GetElementProperties_CSS_Only(htmlElement, sourceContext, cssProperties);
-
-        if (cssProperties.ContainsKey("width"))
-          sourceContext[sourceContext.Count - 1].elementProperties["width"] = cssProperties["width"];
-        if (cssProperties.ContainsKey("height"))
-          sourceContext[sourceContext.Count - 1].elementProperties["height"] = cssProperties["height"];
-      }
-
+      var cssProperties = new Dictionary<string, object>();
+      stylesheet.GetElementProperties_CSS_Only(htmlElement, sourceContext, cssProperties);
       var elementProperties = sourceContext[sourceContext.Count - 1].elementProperties;
 
-      if (elementProperties.ContainsKey("width") && (elementProperties["width"] as string) == "auto" && elementProperties.ContainsKey("height") && (elementProperties["height"] as string) == "auto")
+      if (cssProperties.ContainsKey("width") || cssProperties.ContainsKey("height"))
       {
-        // image should be displayed in its original size
-        xamlImageElement.Width = null;
-        xamlImageElement.Height = null;
-
+        // CSS properties width and height take precedence, thus ignore the attribute width and height...
+        // a value of 'auto' for width and height is treated as if there is no width or height value set at all,
+        // i.e. width or height is retrieved from the actual image dimensions
+        if (cssProperties.ContainsKey("width"))
+        {
+          if (!(cssProperties["width"] is string s && s == "auto")) // auto is considered here as value not set
+          {
+            elementProperties["width"] = cssProperties["width"]; // make sure that CSS gets precedence (if attribute width was set too, it is overwritten here)
+            xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+          }
+        }
+        if (cssProperties.ContainsKey("height"))
+        {
+          if (!(cssProperties["height"] is string s && s == "auto")) // auto is considered here as value not set
+          {
+            elementProperties["height"] = cssProperties["height"]; // make sure that CSS gets precedence (if attribute height was set too, it is overwritten here)
+            xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+          }
+        }
       }
-      else if (elementProperties.ContainsKey("width") && (elementProperties["width"] as string) == "auto")
+      else if (elementProperties.ContainsKey("width") || elementProperties.ContainsKey("height"))
       {
-        // heigth must be determined, width is the set to keep aspect ratio
-        xamlImageElement.Width = null;
-        xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
-      }
-      else if (elementProperties.ContainsKey("height") && (elementProperties["height"] as string) == "auto")
-      {
-        // width must be determined, height is then set to keep aspect ratio
-        xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
-        xamlImageElement.Height = null;
-
-      }
-      else
-      {
-        xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
-        xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+        // use the attribute properties width and height in pixel
+        if (elementProperties.ContainsKey("width"))
+        {
+          xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+        }
+        if (elementProperties.ContainsKey("height"))
+        {
+          xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+        }
       }
 
 
@@ -2426,7 +2486,14 @@ namespace HtmlToFlowDocument
               bb.TextAlignment = PropertyExtensions.GetTextAlignment((string)entry.Value);
             }
             break;
-
+          case "vertical-align":
+            {
+              if (xamlElement is Inline inline)
+              {
+                inline.VerticalAlignment = (ExCSS.VerticalAlignment)entry.Value;
+              }
+            }
+            break;
           case "width":
           case "height":
             //  Decide what to do with width and height propeties
@@ -2583,6 +2650,7 @@ namespace HtmlToFlowDocument
           b.BorderThickness = PropertyExtensions.GetThickness(left: borderThicknessLeft, right: borderThicknessRight, top: borderThicknessTop, bottom: borderThicknessBottom);
         }
       }
+
     }
 
     static ExCSS.Length? ResolveRemEmExCh(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
@@ -3117,12 +3185,16 @@ namespace HtmlToFlowDocument
           break;
         case "samp":
           localProperties["font-family"] = "Courier New"; // code sample
-          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Tiny);
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
           localProperties["text-align"] = ExCSS.Keywords.Left;
           break;
         case "sub":
+          localProperties["vertical-align"] = ExCSS.VerticalAlignment.Sub;
+          localProperties["font-size"] = new ExCSS.Length(3.0f / 4, ExCSS.Length.Unit.Em);
           break;
         case "sup":
+          localProperties["vertical-align"] = ExCSS.VerticalAlignment.Super;
+          localProperties["font-size"] = new ExCSS.Length(3.0f / 4, ExCSS.Length.Unit.Em);
           break;
 
         // Hyperlinks
@@ -3141,8 +3213,12 @@ namespace HtmlToFlowDocument
           break;
         case "pre":
           localProperties["font-family"] = "Courier New"; // renders text in a fixed-width font
-          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Tiny);
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
           localProperties["text-align"] = ExCSS.Keywords.Left;
+          break;
+        case "code":
+          localProperties["font-family"] = "Courier New"; // renders text in a fixed-width font
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
           break;
         case "blockquote":
           localProperties["margin-left"] = ExCSS.Keywords.Medium;

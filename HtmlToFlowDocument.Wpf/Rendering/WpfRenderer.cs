@@ -367,7 +367,7 @@ namespace HtmlToFlowDocument.Rendering
         if (e.FontSize.HasValue)
         {
           var fs = e.FontSize.Value;
-          fs = Math.Max(0.003, fs);
+          fs = Math.Max(0.004, fs);
           te.FontSize = fs;
         }
 
@@ -424,6 +424,13 @@ namespace HtmlToFlowDocument.Rendering
         if (b.LineHeight.HasValue)
         {
           be.LineHeight = b.LineHeight.Value;
+        }
+      }
+      if (e is Inline i && wpf is swd.Inline ie)
+      {
+        if (i.VerticalAlignment.HasValue)
+        {
+          ie.BaselineAlignment = ToBaselineAlignment(i.VerticalAlignment.Value);
         }
       }
       //  finished rendering the attributes
@@ -739,6 +746,31 @@ namespace HtmlToFlowDocument.Rendering
       }
     }
 
+    private System.Windows.BaselineAlignment ToBaselineAlignment(ExCSS.VerticalAlignment value)
+    {
+      switch (value)
+      {
+        case ExCSS.VerticalAlignment.Baseline:
+          return System.Windows.BaselineAlignment.Baseline;
+        case ExCSS.VerticalAlignment.Sub:
+          return System.Windows.BaselineAlignment.Subscript;
+        case ExCSS.VerticalAlignment.Super:
+          return System.Windows.BaselineAlignment.Superscript;
+        case ExCSS.VerticalAlignment.TextTop:
+          return System.Windows.BaselineAlignment.TextTop;
+        case ExCSS.VerticalAlignment.TextBottom:
+          return System.Windows.BaselineAlignment.Bottom;
+        case ExCSS.VerticalAlignment.Middle:
+          return System.Windows.BaselineAlignment.Center;
+        case ExCSS.VerticalAlignment.Top:
+          return System.Windows.BaselineAlignment.Top;
+        case ExCSS.VerticalAlignment.Bottom:
+          return System.Windows.BaselineAlignment.Bottom;
+        default:
+          throw new NotImplementedException();
+      }
+    }
+
     private System.Windows.TextDecorationCollection ToTextDecorations(Dom.TextDecorations value)
     {
       switch (value)
@@ -820,9 +852,17 @@ namespace HtmlToFlowDocument.Rendering
       var parts = familyName.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
       if (_resolvedFontFamilies.ContainsKey(parts[0].Trim()))
+      {
         return _resolvedFontFamilies[parts[0].Trim()];
+      }
       else
+      {
+        if (familyName == "monospace")
+          familyName = "Global Monospace";
+
+
         return new System.Windows.Media.FontFamily(familyName);
+      }
     }
 
 
