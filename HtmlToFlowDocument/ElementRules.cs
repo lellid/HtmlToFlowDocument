@@ -27,6 +27,7 @@ namespace HtmlToFlowDocument
     /// Holds the style rules of the HTML element this instance was constructed from
     /// (from the local styles given by the 'style' attribute and the linked styles of the HTML document).
     /// Please note that this list will not hold the properties of the HTML element given in its other attributes!
+    /// The rules are sorted so that the higher priority rules are at the end of the list
     /// </summary>
     List<StyleRule> _ruleList = new List<StyleRule>();
 
@@ -73,7 +74,22 @@ namespace HtmlToFlowDocument
 
       IEnumerable<StyleRule> styleRules = null;
 
-      // Parse local styles given by the 'style' attribute
+      // Note: we design the enumeration so that higher priority rules (priority here  merely given by its position)
+      // are at the end of the list
+      // we assume here that the same rules given later in the document will override rules given before
+      // furthermore we assume that rules given in the local style attributes will override rules given in the CSS file
+
+
+      // Concat any style rules given by the linked style sheets
+      for (int i = 0; i < styleSheets.Count; ++i)
+      {
+        if (styleRules is null)
+          styleRules = styleSheets[i].Rules.OfType<StyleRule>();
+        else
+          styleRules = styleRules.Concat(styleSheets[i].Rules.OfType<StyleRule>());
+      }
+
+      //Concat local styles given by the 'style' attribute
       var localStyle = xmlElement.GetAttribute("style");
       if (!string.IsNullOrEmpty(localStyle))
       {
@@ -85,14 +101,8 @@ namespace HtmlToFlowDocument
           styleRules = styleRules.Concat(localStyleSheet.Rules.OfType<StyleRule>());
       }
 
-      // Concat any style rules given by the linked style sheets
-      for (int i = styleSheets.Count - 1; i >= 0; --i)
-      {
-        if (styleRules is null)
-          styleRules = styleSheets[i].Rules.OfType<StyleRule>();
-        else
-          styleRules = styleRules.Concat(styleSheets[i].Rules.OfType<StyleRule>());
-      }
+      // Note that at this point the rules with higher priority as given by their position
+      // are at the end of the enumeration 'styleRules' !
 
       if (!(styleRules is null))
       {
@@ -162,7 +172,7 @@ namespace HtmlToFlowDocument
     {
       Property result = null;
 
-      for (int i = 0; i < _ruleList.Count; ++i)
+      for (int i = _ruleList.Count - 1; i >= 0; --i)
       {
         var rule = _ruleList[i];
 
