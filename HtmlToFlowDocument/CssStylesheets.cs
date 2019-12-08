@@ -141,13 +141,37 @@ namespace HtmlToFlowDocument
 
     ElementRules _elementRules = new ElementRules();
 
+
     /// <summary>
     /// Gets the element properties new.
     /// </summary>
     /// <param name="elementName">The XHTML element. Has to be the topmost element on the sourceContext.</param>
     /// <param name="sourceContext">The source context.</param>
     /// <param name="propertyDictionary">The property dictionary to store the element properties to.</param>
-    public void GetElementProperties(XmlElement htmlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, Dictionary<string, object> propertyDictionary)
+    public void GetElementProperties(
+      XmlElement htmlElement,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext,
+      Dictionary<string, object> propertyDictionary
+      )
+    {
+      GetElementProperties(htmlElement, sourceContext, propertyDictionary, out var beforeElementProperties, out var afterElementProperties);
+    }
+
+    /// <summary>
+    /// Gets the element properties new.
+    /// </summary>
+    /// <param name="elementName">The XHTML element. Has to be the topmost element on the sourceContext.</param>
+    /// <param name="sourceContext">The source context.</param>
+    /// <param name="propertyDictionary">The property dictionary to store the element properties to.</param>
+    /// <param name="beforeElementProperties">If for the given <paramref name="htmlElement"/> a '::before' pseudo element rule exists, then on return this dictionary contains the properties of the ::before pseudo element (otherwise, the returned value is null).</param>
+    /// <param name="afterElementProperties">If for the given <paramref name="htmlElement"/> an '::after' pseudo element rule exists, then on return this dictionary contains the properties of the ::after pseudo element (otherwise, the returned value is null).</param>
+    public void GetElementProperties(
+    XmlElement htmlElement,
+    List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext,
+    Dictionary<string, object> propertyDictionary,
+    out Dictionary<string, object> beforeElementProperties,
+    out Dictionary<string, object> afterElementProperties
+    )
     {
       Debug.Assert(sourceContext.Count > 0);
       Debug.Assert(object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement));
@@ -158,6 +182,27 @@ namespace HtmlToFlowDocument
       {
         _elementRules.GetProperty(pn, propertyDictionary);
       }
+
+      if (_elementRules.HasPseudoRule("::before"))
+      {
+        beforeElementProperties = new Dictionary<string, object>();
+        _elementRules.GetPseudoProperties("::before", beforeElementProperties);
+      }
+      else
+      {
+        beforeElementProperties = null;
+      }
+
+      if (_elementRules.HasPseudoRule("::after"))
+      {
+        afterElementProperties = new Dictionary<string, object>();
+        _elementRules.GetPseudoProperties("::after", afterElementProperties);
+      }
+      else
+      {
+        afterElementProperties = null;
+      }
+
     }
 
 

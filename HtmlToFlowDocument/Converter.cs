@@ -768,13 +768,43 @@ namespace HtmlToFlowDocument
         }
       }
 
-      var xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
-      xamlElement.Parent = xamlParentElement;
-      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
       // Create currentProperties as a compilation of local, set localProperties
-      GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
+      GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
 
+      Inline xamlElement;
+
+      // Handle a ::before pseudo element (if such a rule exists).
+      if (null != beforeElementProperties)
+      {
+        beforeElementProperties.TryGetValue("content", out var content);
+        var text = content as string;
+        if (null != text && text.Length >= 2 && text[0] == '\"' && text[text.Length - 1] == '\"')
+          text = text.Substring(1, text.Length - 2);
+
+        if (!string.IsNullOrEmpty(text))
+        {
+          xamlElement = new Run(text);
+          xamlElement.Parent = xamlParentElement;
+          xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+
+          // temporarily replace the source context's top element by the pseudo element
+          var oldElement = sourceContext[sourceContext.Count - 1];
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add((oldElement.xmlElement.OwnerDocument.CreateElement("span"), beforeElementProperties));
+          ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+          // Restore source context
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add(oldElement);
+          xamlParentElement.AppendChild(xamlElement);
+        }
+      }
+
+
+      // Handle regular element
+      xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
+      xamlElement.Parent = xamlParentElement;
+      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
       ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
 
       // Recurse into element subtree
@@ -792,6 +822,31 @@ namespace HtmlToFlowDocument
       else if (xamlElement is Span span && 0 != span.Childs.Count)
         xamlParentElement.AppendChild(xamlElement);
 
+      // Handle an ::after pseudo element (if such a rule exists)
+      if (null != afterElementProperties)
+      {
+        afterElementProperties.TryGetValue("content", out var content);
+        var text = content as string;
+        if (null != text && text.Length >= 2 && text[0] == '\"' && text[text.Length - 1] == '\"')
+          text = text.Substring(1, text.Length - 2);
+
+        if (!string.IsNullOrEmpty(text))
+        {
+          xamlElement = new Run(text);
+          xamlElement.Parent = xamlParentElement;
+          xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+
+          // temporarily replace the source context's top element by the pseudo element
+          var oldElement = sourceContext[sourceContext.Count - 1];
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add((oldElement.xmlElement.OwnerDocument.CreateElement("span"), afterElementProperties));
+          ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+          // Restore source context
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add(oldElement);
+          xamlParentElement.AppendChild(xamlElement);
+        }
+      }
     }
 
     // Adds a text run to a xaml tree
@@ -3095,9 +3150,6 @@ namespace HtmlToFlowDocument
       throw new ArgumentException($"Can not add length of type {l1.Type} and {l2.Type}");
     }
 
-
-
-
     /// <summary>
     ///     Analyzes the tag of the htmlElement and infers its associated formatted properties.
     ///     After that parses style attribute and adds all inline css styles.
@@ -3123,7 +3175,42 @@ namespace HtmlToFlowDocument
       XmlElement htmlElement,
       Dictionary<string, object> localProperties,
       CssStylesheets stylesheet,
-      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext
+      )
+    {
+      GetElementProperties(htmlElement, localProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
+    }
+
+
+    /// <summary>
+    ///     Analyzes the tag of the htmlElement and infers its associated formatted properties.
+    ///     After that parses style attribute and adds all inline css styles.
+    ///     The resulting style attributes are collected in output parameter localProperties.
+    /// </summary>
+    /// <param name="htmlElement">
+    /// </param>
+    /// <param name="inheritedProperties">
+    ///     set of properties inherited from ancestor elements. Currently not used in the code. Reserved for the future
+    ///     development.
+    /// </param>
+    /// <param name="localProperties">
+    ///     returns all formatting properties defined by this element - implied by its tag, its attributes, or its css inline
+    ///     style
+    /// </param>
+    /// <param name="stylesheet"></param>
+    /// <param name="sourceContext"></param>
+    /// <returns>
+    ///     returns a combination of previous context with local set of properties.
+    ///     This value is not used in the current code - inntended for the future development.
+    /// </returns>
+    private static void GetElementProperties(
+    XmlElement htmlElement,
+    Dictionary<string, object> localProperties,
+    CssStylesheets stylesheet,
+    List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext,
+    out Dictionary<string, object> beforeElementProperties,
+    out Dictionary<string, object> afterElementProperties
+    )
     {
       if (!object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement))
       {
@@ -3258,7 +3345,7 @@ namespace HtmlToFlowDocument
       }
 
       // Override html defaults by css attributes - from stylesheets and inline settings
-      stylesheet.GetElementProperties(htmlElement, sourceContext, localProperties);
+      stylesheet.GetElementProperties(htmlElement, sourceContext, localProperties, out beforeElementProperties, out afterElementProperties);
     }
 
 

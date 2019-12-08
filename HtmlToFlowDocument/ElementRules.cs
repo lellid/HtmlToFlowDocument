@@ -31,6 +31,14 @@ namespace HtmlToFlowDocument
     /// </summary>
     List<StyleRule> _ruleList = new List<StyleRule>();
 
+    /// <summary>
+    /// Holds the pseudo element (::before and ::after) style rules of the HTML element this instance was constructed from
+    /// from the linked styles of the HTML document.
+    /// The rules are sorted so that the higher priority rules are at the end of the list
+    /// </summary>
+    List<StyleRule> _pseudoRuleList = new List<StyleRule>();
+
+
     static ElementRules()
     {
       _validPropertyNames = new HashSet<string>();
@@ -71,6 +79,7 @@ namespace HtmlToFlowDocument
         throw new ArgumentOutOfRangeException("Last element of elementHierarchy must contain the provided element");
 
       _ruleList.Clear();
+      _pseudoRuleList.Clear();
 
       IEnumerable<StyleRule> styleRules = null;
 
@@ -106,7 +115,17 @@ namespace HtmlToFlowDocument
 
       if (!(styleRules is null))
       {
-        _ruleList.AddRange(GetStyleRulesFor(xmlElement, elementHierarchy, styleRules));
+        foreach (var (rule, isPseudo) in GetStyleRulesFor(xmlElement, elementHierarchy, styleRules))
+        {
+          if (isPseudo)
+          {
+            _pseudoRuleList.Add(rule);
+          }
+          else
+          {
+            _ruleList.Add(rule);
+          }
+        }
         _ruleList.Sort((x, y) => Comparer<Priority>.Default.Compare(x.Selector.Specifity, y.Selector.Specifity));
       }
     }
@@ -192,6 +211,34 @@ namespace HtmlToFlowDocument
       return result;
     }
 
+    /// <summary>
+    /// Gets a given property from the style rules.
+    /// </summary>
+    /// <param name="propertyName">Name of the property.</param>
+    /// <returns>If found, the property; otherwise, null.</returns>
+    protected Property GetPropertyFromRules(IEnumerable<StyleRule> rulesPriorityFirst, string propertyName)
+    {
+      Property result = null;
+
+      foreach (var rule in rulesPriorityFirst)
+      {
+        foreach (var prop in AllChildrenOf(rule).OfType<Property>())
+        {
+          if (prop.Name == propertyName)
+          {
+            if (result is null)
+              result = prop;
+
+            if (prop.IsImportant)
+              return result;
+          }
+        }
+      }
+
+      return result;
+    }
+
+
     private IEnumerable<IStylesheetNode> AllChildrenOf(IStylesheetNode rule)
     {
       foreach (var c1 in rule.Children)
@@ -204,30 +251,41 @@ namespace HtmlToFlowDocument
     }
 
     /// <summary>
-    /// Gets all name of all properties the Html element has.
+    /// Gets all name of all properties the Html element has, both from its attributes and from its rules.
     /// </summary>
+    /// <param name="xmlElementAttributes">The attributes of the Xml element. May be null.</param>
+    /// <param name="ruleList">The rule list for the Xml element. May be null.</param>
     /// <returns></returns>
-    public HashSet<string> GetAllPropertyNames()
+    public static HashSet<string> GetAllPropertyNames(XmlAttributeCollection xmlElementAttributes, IEnumerable<StyleRule> ruleList)
     {
       var result = new HashSet<string>();
 
-      if (_xmlElement.Attributes != null)
+      if (xmlElementAttributes != null)
       {
-        foreach (XmlAttribute att in _xmlElement.Attributes)
+        foreach (XmlAttribute att in xmlElementAttributes)
         {
           if (_validPropertyNames.Contains(att.Name))
             result.Add(att.Name);
         }
       }
-
-
-      foreach (var rule in _ruleList)
+      if (ruleList != null)
       {
-        foreach (var property in rule.Style.Children.OfType<Property>())
-          result.Add(property.Name);
+        foreach (var rule in ruleList)
+        {
+          foreach (var property in rule.Style.Children.OfType<Property>())
+            result.Add(property.Name);
+        }
       }
-
       return result;
+    }
+
+    /// <summary>
+    /// Gets all name of all properties the Html element has.
+    /// </summary>
+    /// <returns></returns>
+    public HashSet<string> GetAllPropertyNames()
+    {
+      return GetAllPropertyNames(_xmlElement.Attributes, _ruleList);
     }
 
 
@@ -239,9 +297,9 @@ namespace HtmlToFlowDocument
     /// <param name="xmlElement">The Html element.</param>
     /// <param name="elementHierarchy">The element hierarchy. The element on top of the hierarchy is either the element given in <paramref name="xmlElement"/>, or its parent element.</param>
     /// <param name="allRules">All rules fro all style sheets, including the local styles of the element given in its style attribute.</param>
-    /// <returns>Only those rules that apply to the given Html element.</returns>
+    /// <returns>Only those rules that apply to the given Html element. Rules concerning pseudo elements are flagged with IsPseudo=true</returns>
     /// <exception cref="NotImplementedException"></exception>
-    static IEnumerable<StyleRule> GetStyleRulesFor(XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, IEnumerable<StyleRule> allRules)
+    static IEnumerable<(StyleRule Rule, bool IsPseudo)> GetStyleRulesFor(XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, IEnumerable<StyleRule> allRules)
     {
       string elementName = !string.IsNullOrEmpty(xmlElement.LocalName) ? xmlElement.LocalName : null;
       string id = xmlElement.GetAttribute("id");
@@ -253,12 +311,69 @@ namespace HtmlToFlowDocument
 
       foreach (var rule in allRules)
       {
-        if (IsSelected(rule.Selector, elementName, elementId, elementClasses, elementHierarchy))
+        bool isPseudo = false;
+        if (IsSelected(rule.Selector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo))
         {
-          yield return rule;
+          yield return (rule, isPseudo);
         }
       }
     }
+
+    #endregion
+
+    #region Queries for Pseudo Elements
+
+    /// <summary>
+    /// Determines whether this element has pseudo rules, especially ::before and ::after pseudo element rules.
+    /// </summary>
+    /// <param name="pseudoSelector">The pseudo element selector, e.g. '::before' or '::after'.</param>
+    /// <returns>
+    ///   <c>true</c> if the element has a rule for the specified pseudo selector; otherwise, <c>false</c>.
+    /// </returns>
+    public bool HasPseudoRule(string pseudoSelector)
+    {
+      foreach (var rule in _pseudoRuleList)
+        if (rule.SelectorText.EndsWith(pseudoSelector))
+          return true;
+
+      return false;
+    }
+
+    /// <summary>
+    /// Gets all rules for the specified pseudo element selector. Rules with higher priority are enumerated at first.
+    /// </summary>
+    /// <param name="pseudoSelector">>The pseudo element selector, e.g. '::before' or '::after'.</param>
+    /// <returns>All rules for the specified pseudo element selector. Rules with higher priority are enumerated at first.</returns>
+    public IEnumerable<StyleRule> GetPseudoRulesPriorityFirst(string pseudoSelector)
+    {
+      for (int i = _pseudoRuleList.Count - 1; i >= 0; --i)
+      {
+        var rule = _pseudoRuleList[i];
+        if (rule.SelectorText.EndsWith(pseudoSelector))
+          yield return rule;
+      }
+    }
+
+    /// <summary>
+    /// Gets all properties of a pseudo selector.
+    /// </summary>
+    /// <param name="pseudoSelector">Name of the pseudo selector. Example: for the after element selector, use '::after'.</param>
+    /// <param name="propertyDictionary">On return, the property dictionary contains all properties of the pseudo element or class.</param>
+    public void GetPseudoProperties(string pseudoSelector, Dictionary<string, object> propertyDictionary)
+    {
+      var rules = GetPseudoRulesPriorityFirst(pseudoSelector).ToArray();
+      var propNames = GetAllPropertyNames(null, rules);
+
+      foreach (var propertyName in propNames)
+      {
+        Property property;
+        if (null != (property = GetPropertyFromRules(rules, propertyName)))
+        {
+          PropertyConverter.Convert(property, propertyDictionary);
+        }
+      }
+    }
+
 
     #endregion
 
@@ -272,16 +387,27 @@ namespace HtmlToFlowDocument
     /// <param name="elementName">Name of the XHTML element.</param>
     /// <param name="elementId">The Id attribute value of the XHTML element.</param>
     /// <param name="elementClasses">The classes of the XHTML element.</param>
+    /// <param name="isPseudoElement">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
     /// <exception cref="NotImplementedException"></exception>
-    static bool IsSelected(SimpleSelector simpleSel, string elementName, string elementId, string[] elementClasses)
+    static bool IsSelected(SimpleSelector simpleSel, string elementName, string elementId, string[] elementClasses, ref bool isPseudoElement)
     {
       if (simpleSel.Text == "*")
         return true;
       else if (simpleSel.Specifity.Tags != 0)
-        return elementName == simpleSel.Text;
+      {
+        if (simpleSel.Text[0] == ':')
+        {
+          isPseudoElement = true;
+          return true;
+        }
+        else
+        {
+          return elementName == simpleSel.Text;
+        }
+      }
       else if (simpleSel.Specifity.Ids != 0)
         return elementId == simpleSel.Text;
       else if (simpleSel.Specifity.Classes != 0)
@@ -300,17 +426,18 @@ namespace HtmlToFlowDocument
     /// <param name="elementId">The Id attribute value of the XHTML element.</param>
     /// <param name="elementClasses">The classes of the XHTML element.</param>
     /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <param name="isPseudo">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(CompoundSelector compoundSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    static bool IsSelected(CompoundSelector compoundSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       // all of the elements must give true
       bool isSelected = true;
       bool hasElements = false;
       foreach (var sel in compoundSelector)
       {
-        isSelected &= IsSelected(sel, elementName, elementId, elementClasses, elementHierarchy);
+        isSelected &= IsSelected(sel, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         hasElements = true;
       }
       return isSelected && hasElements;
@@ -324,17 +451,18 @@ namespace HtmlToFlowDocument
     /// <param name="elementId">The Id attribute value of the XHTML element.</param>
     /// <param name="elementClasses">The classes of the XHTML element.</param>
     /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <param name="isPseudo">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ListSelector listSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    static bool IsSelected(ListSelector listSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       // one of the selectors must return true;
       bool isSelected = false;
 
       foreach (var sel in listSelector)
       {
-        isSelected |= IsSelected(sel, elementName, elementId, elementClasses, elementHierarchy);
+        isSelected |= IsSelected(sel, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         if (isSelected)
           break;
       }
@@ -350,10 +478,11 @@ namespace HtmlToFlowDocument
     /// <param name="elementId">The Id attribute value of the XHTML element.</param>
     /// <param name="elementClasses">The classes of the XHTML element.</param>
     /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <param name="isPseudo">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ComplexSelector complexSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    static bool IsSelected(ComplexSelector complexSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       if (!(elementHierarchy[elementHierarchy.Count - 1].xmlElement.Name == elementName))
         throw new ArgumentOutOfRangeException("Last element of elementHierarchy must contain the provided element");
@@ -378,7 +507,7 @@ namespace HtmlToFlowDocument
 
           if (selectorLevel == 0)
           {
-            isSelected &= IsSelected(s.Selector, elementName, elementId, elementClasses, elementHierarchy);
+            isSelected &= IsSelected(s.Selector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
           }
           else
           {
@@ -386,18 +515,20 @@ namespace HtmlToFlowDocument
             {
               case ">":
                 {
-                  isSelected &= IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy);
+                  isSelected &= IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy, ref isPseudo);
                 }
                 break;
               case " ":
                 {
-                  var iss = IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy);
+                  bool isp = false;
+                  var iss = IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy, ref isp);
                   while (iss == false && hierarchyLevel > 0)
                   {
                     --hierarchyLevel;
-                    iss = IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy);
+                    iss = IsSelected(s.Selector, elementHierarchy[hierarchyLevel].xmlElement, elementHierarchy, ref isp);
                   }
                   isSelected &= iss;
+                  isPseudo |= isp;
                 }
                 break;
               case "+": // adjacent sibling operator
@@ -408,7 +539,7 @@ namespace HtmlToFlowDocument
                   {
                     previousSibling = previousSibling.PreviousSibling;
                   }
-                  isSelected &= previousSibling is XmlElement previousElement && IsSelected(s.Selector, previousElement, elementHierarchy);
+                  isSelected &= previousSibling is XmlElement previousElement && IsSelected(s.Selector, previousElement, elementHierarchy, ref isPseudo);
                 }
                 break;
               case "~": // General sibling operator
@@ -418,7 +549,7 @@ namespace HtmlToFlowDocument
                   XmlNode previousSibling = elementHierarchy[hierarchyLevel].xmlElement.PreviousSibling;
                   while (previousSibling != null)
                   {
-                    if (previousSibling is XmlElement previousElement && IsSelected(s.Selector, previousElement, elementHierarchy))
+                    if (previousSibling is XmlElement previousElement && IsSelected(s.Selector, previousElement, elementHierarchy, ref isPseudo))
                     {
                       localIsSelected = true;
                       break;
@@ -483,21 +614,24 @@ namespace HtmlToFlowDocument
     /// <param name="elementId">The Id attribute value of the XHTML element.</param>
     /// <param name="elementClasses">The classes of the XHTML element.</param>
     /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <param name="isPseudo">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ISelector selector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    static bool IsSelected(ISelector selector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
+      isPseudo = false;
+
       switch (selector)
       {
         case SimpleSelector simpleSelector:
-          return IsSelected(simpleSelector, elementName, elementId, elementClasses);
+          return IsSelected(simpleSelector, elementName, elementId, elementClasses, ref isPseudo);
         case ListSelector listSelector:
-          return IsSelected(listSelector, elementName, elementId, elementClasses, elementHierarchy);
+          return IsSelected(listSelector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         case CompoundSelector compoundSelector:
-          return IsSelected(compoundSelector, elementName, elementId, elementClasses, elementHierarchy);
+          return IsSelected(compoundSelector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         case ComplexSelector complexSelector:
-          return IsSelected(complexSelector, elementName, elementId, elementClasses, elementHierarchy);
+          return IsSelected(complexSelector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         case FirstChildSelector firstChildSelector:
           return IsSelected(firstChildSelector, elementName, elementId, elementClasses, elementHierarchy);
         default:
@@ -511,10 +645,11 @@ namespace HtmlToFlowDocument
     /// <param name="selector">The selector.</param>
     /// <param name="xmlElement">The XHTML element.</param>
     /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <param name="isPseudo">If this element is selected and the rule is a pseudo element rule, true is returned.</param>
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ISelector selector, XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    static bool IsSelected(ISelector selector, XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       if (xmlElement is null)
         return false;
@@ -526,7 +661,7 @@ namespace HtmlToFlowDocument
       for (int i = 0; i < elementClasses.Length; ++i)
         elementClasses[i] = "." + elementClasses[i];
 
-      return IsSelected(selector, elementName, elementId, elementClasses, elementHierarchy);
+      return IsSelected(selector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
     }
 
     #endregion
