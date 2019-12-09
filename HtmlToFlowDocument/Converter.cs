@@ -1065,7 +1065,8 @@ namespace HtmlToFlowDocument
       xamlImageElement.MaxWidth = GetMaxWidthOrMaxHeightForContext("max-width", sourceContext);
       xamlImageElement.MaxHeight = GetMaxWidthOrMaxHeightForContext("max-height", sourceContext);
 
-
+      // Apply the other properties to the container element instead of the image itself
+      ApplyLocalProperties(xamlContainerElement, sourceContext, xamlContainerElement is BlockUIContainer);
 
 
       xamlContainerElement.AppendChild(xamlImageElement); // put the image in the container

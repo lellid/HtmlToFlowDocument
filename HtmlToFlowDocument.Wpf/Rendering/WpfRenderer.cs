@@ -236,15 +236,13 @@ namespace HtmlToFlowDocument.Rendering
               throw new InvalidProgramException();
             }
 
-
-
-
             wpf = imagee;
           }
           break;
         case InlineUIContainer iuc:
           {
-            wpf = new swd.InlineUIContainer();
+            var inlineuiContainere = new swd.InlineUIContainer();
+            wpf = inlineuiContainere;
           }
           break;
         case LineBreak lb:
