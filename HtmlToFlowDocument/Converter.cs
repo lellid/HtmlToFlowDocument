@@ -2481,7 +2481,18 @@ namespace HtmlToFlowDocument
             {
               if (xamlElement is Inline inline)
               {
-                inline.VerticalAlignment = (ExCSS.VerticalAlignment)entry.Value;
+                if (entry.Value is ExCSS.VerticalAlignment valign)
+                {
+                  inline.VerticalAlignment = valign;
+                }
+                else if (entry.Value is ExCSS.Length vlength)
+                {
+                  // TODO? Not implemented yet
+                }
+                else
+                {
+                  // Silently ignore too
+                }
               }
             }
             break;
