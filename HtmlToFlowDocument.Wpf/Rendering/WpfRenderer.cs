@@ -63,8 +63,22 @@ namespace HtmlToFlowDocument.Rendering
     public string NameOfFlowDocument { get; set; } = "_guiFlowDocument";
 
 
+    /// <summary>
+    /// Gets or sets the template for the binding to get the column width (= viewport width) of the document.
+    /// Each time a binding to the viewport width is needed, a copy of this binding is made.
+    /// </summary>
+    /// <value>
+    /// The template for the binding to get the column width (= viewport width) of the document.
+    /// </value>
     public Binding TemplateBindingViewportWidth { get; set; }
 
+    /// <summary>
+    /// Gets or sets the template for the binding to get the viewport height of the document.
+    /// Each time a binding to the viewport height is needed, a copy of this binding is made.
+    /// </summary>
+    /// <value>
+    /// The template for the binding to get the viewport height of the document.
+    /// </value>
     public Binding TemplateBindingViewportHeight { get; set; }
 
     /// <summary>
@@ -844,6 +858,16 @@ namespace HtmlToFlowDocument.Rendering
       }
     }
 
+
+    private static readonly Dictionary<string, string> _genericFontSubstitutes = new Dictionary<string, string>
+    {
+      ["monospace"] = "Global Monospace",
+      ["serif"] = "Global Serif",
+      ["sans-serif"] = "Global Sans Serif",
+      ["cursive"] = "Comic Sans MS",
+      ["fantasy"] = "Impact",
+    };
+
     System.Windows.Media.FontFamily GetFontFamily(string familyName)
     {
       familyName = familyName.ToLowerInvariant();
@@ -855,9 +879,8 @@ namespace HtmlToFlowDocument.Rendering
       }
       else
       {
-        if (familyName == "monospace")
-          familyName = "Global Monospace";
-
+        if (_genericFontSubstitutes.TryGetValue(familyName, out var substitute))
+          familyName = substitute;
 
         return new System.Windows.Media.FontFamily(familyName);
       }

@@ -20,86 +20,14 @@ namespace HtmlToFlowDocument
   /// </summary>
   public class Converter
   {
-    public const float FontSizeRootPx = 16;
+    static readonly ExCSS.Length ZeroPixel = new ExCSS.Length(0, ExCSS.Length.Unit.Px);
+    static readonly ExCSS.Length OnePixel = new ExCSS.Length(1, ExCSS.Length.Unit.Px);
+
 
     /// <summary>
-    /// True if the converter is e.g. in a 'pre' element, in which whitespace is important.
+    /// The font size of the root DOM node in pixel. Default value is 16.
     /// </summary>
-    private bool _isWhitespaceSignificant;
-
-    // ----------------------------------------------------------------
-    //
-    // Internal Constants
-    //
-    // ----------------------------------------------------------------
-
-    // The constants reprtesent all Xaml names used in a conversion
-    public const string XamlFlowDocument = "FlowDocument";
-    public const string XamlRun = "Run";
-    public const string XamlSpan = "Span";
-    public const string XamlHyperlink = "Hyperlink";
-    public const string XamlHyperlinkNavigateUri = "NavigateUri";
-    public const string XamlHyperlinkTargetName = "TargetName";
-    public const string XamlSection = "Section";
-    public const string XamlList = "List";
-    public const string XamlListMarkerStyle = "MarkerStyle";
-    public const string XamlListMarkerStyleNone = "None";
-    public const string XamlListMarkerStyleDecimal = "Decimal";
-    public const string XamlListMarkerStyleDisc = "Disc";
-    public const string XamlListMarkerStyleCircle = "Circle";
-    public const string XamlListMarkerStyleSquare = "Square";
-    public const string XamlListMarkerStyleBox = "Box";
-    public const string XamlListMarkerStyleLowerLatin = "LowerLatin";
-    public const string XamlListMarkerStyleUpperLatin = "UpperLatin";
-    public const string XamlListMarkerStyleLowerRoman = "LowerRoman";
-    public const string XamlListMarkerStyleUpperRoman = "UpperRoman";
-    public const string XamlListItem = "ListItem";
-    public const string XamlLineBreak = "LineBreak";
-    public const string XamlParagraph = "Paragraph";
-    public const string XamlMargin = "Margin";
-    public const string XamlPadding = "Padding";
-    public const string XamlBorderBrush = "BorderBrush";
-    public const string XamlBorderThickness = "BorderThickness";
-    public const string XamlTable = "Table";
-    public const string XamlTableColumn = "TableColumn";
-    public const string XamlTableRowGroup = "TableRowGroup";
-    public const string XamlTableRow = "TableRow";
-    public const string XamlTableCell = "TableCell";
-    public const string XamlTableCellBorderThickness = "BorderThickness";
-    public const string XamlTableCellBorderBrush = "BorderBrush";
-    public const string XamlTableCellColumnSpan = "ColumnSpan";
-    public const string XamlTableCellRowSpan = "RowSpan";
-    public const string XamlWidth = "Width";
-    public const string XamlBrushesBlack = "Black";
-    public const string XamlFontFamily = "FontFamily";
-    public const string XamlFontSize = "FontSize";
-    public const double XamlFontSizeXxLarge = 22; // "XXLarge";
-    public const double XamlFontSizeXLarge = 20; // "XLarge";
-    public const double XamlFontSizeLarge = 18; // "Large";
-    public const double XamlFontSizeMedium = 16; // "Medium";
-    public const double XamlFontSizeSmall = 12; // "Small";
-    public const double XamlFontSizeXSmall = 10; // "XSmall";
-    public const double XamlFontSizeXxSmall = 8; // "XXSmall";
-    public const string XamlFontWeight = "FontWeight";
-    public const string XamlFontWeightBold = "Bold";
-    public const string XamlFontStyle = "FontStyle";
-    public const string XamlForeground = "Foreground";
-    public const string XamlBackground = "Background";
-    public const string XamlTextDecorations = "TextDecorations";
-    public const string XamlTextDecorationsUnderline = "Underline";
-    public const string XamlTextIndent = "TextIndent";
-    public const string XamlTextAlignment = "TextAlignment";
-    // ---------------------------------------------------------------------
-    //
-    // Private Fields
-    //
-    // ---------------------------------------------------------------------
-
-    #region Private Fields
-
-    private static readonly string XamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
-
-    #endregion Private Fields
+    public float FontSizeRootPx { get; set; } = 16;
 
     /// <summary>
     /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
@@ -109,6 +37,18 @@ namespace HtmlToFlowDocument
     ///   <c>true</c> if DOM elements should be attached as tags to the UI elements; otherwise, <c>false</c>.
     /// </value>
     public bool AttachSourceAsTags { get; set; }
+
+    // -------------- Operational data ---------------------------
+
+    /// <summary>
+    /// True if the converter is e.g. in a 'pre' element, in which whitespace is important.
+    /// </summary>
+    private bool _isWhitespaceSignificant;
+
+    /// <summary> Stores a parent DOM element for the case when selected fragment is inline.</summary>
+    private static TextElement _inlineFragmentParentElement;
+
+
 
     // ---------------------------------------------------------------------
     //
@@ -926,8 +866,6 @@ namespace HtmlToFlowDocument
       }
     }
 
-    // Stores a parent xaml element for the case when selected fragment is inline.
-    private static TextElement _inlineFragmentParentElement;
 
     // Called when html comment is encountered to store a parent element
     // for the case when the fragment is inline - to extract it to a separate
@@ -1991,7 +1929,6 @@ namespace HtmlToFlowDocument
       return columnWidthsAvailable ? tbodyWidth : 0;
     }
 
-    static int _debugCounter = 0;
 
     /// <summary>
     ///     Performs a parsing pass over a tr element to read information about column width and rowspan attributes.
@@ -2018,8 +1955,6 @@ namespace HtmlToFlowDocument
         ArrayList activeRowSpans,
         double tableWidth, CssStylesheets stylesheet)
     {
-      ++_debugCounter;
-
       double columnWidth;
 
       // Parameter validation
@@ -2427,7 +2362,7 @@ namespace HtmlToFlowDocument
     /// <param name="localProperties">
     ///     Dictionary<string, object> representing local properties of Html element that is converted into xamlElement
     /// </param>
-    private static void ApplyLocalProperties(TextElement xamlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, bool isBlock)
+    private void ApplyLocalProperties(TextElement xamlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, bool isBlock)
     {
       bool marginSet = false;
       ExCSS.Length? marginTop = null;
@@ -2709,7 +2644,7 @@ namespace HtmlToFlowDocument
 
     }
 
-    static ExCSS.Length? ResolveRemEmExCh(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    private ExCSS.Length? ResolveRemEmExCh(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
     {
       if (length.HasValue)
       {
@@ -2762,7 +2697,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    static ExCSS.Length GetMargin(object value, ref double? currentFontSize, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    ExCSS.Length GetMargin(object value, ref double? currentFontSize, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (value is ExCSS.Length l)
       {
@@ -2782,7 +2717,7 @@ namespace HtmlToFlowDocument
         return ZeroPixel;
     }
 
-    static CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (propertyName != "width" && propertyName != "height")
         throw new ArgumentException("must either be 'width' or 'height'", nameof(propertyName));
@@ -2875,7 +2810,7 @@ namespace HtmlToFlowDocument
     /// <param name="elementProperties">The properties of the element.</param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException">GetAutoCompoundLength is suited only for width and height</exception>
-    public static CompoundLength CreateCompoundLengthFromAutoSize(string propertyName, Dictionary<string, object> elementProperties, List<(System.Xml.XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    CompoundLength CreateCompoundLengthFromAutoSize(string propertyName, Dictionary<string, object> elementProperties, List<(System.Xml.XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
     {
       var result = new CompoundLength
       {
@@ -2980,7 +2915,7 @@ namespace HtmlToFlowDocument
       return result;
     }
 
-    static ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (propertyName != "max-width" && propertyName != "max-height")
         throw new ArgumentException("must either be 'max-width' or 'max-height'", nameof(propertyName));
@@ -3484,8 +3419,6 @@ namespace HtmlToFlowDocument
       }
     }
 
-    static readonly ExCSS.Length ZeroPixel = new ExCSS.Length(0, ExCSS.Length.Unit.Px);
-    static readonly ExCSS.Length OnePixel = new ExCSS.Length(1, ExCSS.Length.Unit.Px);
 
     #endregion Private Methods
 

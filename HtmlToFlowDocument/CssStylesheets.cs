@@ -31,7 +31,7 @@ namespace HtmlToFlowDocument
     private string _htmlFileName;
 
     /// <summary>
-    /// The layers of style sheets. The stylesheet with the highest priority is at the
+    /// The layers of style sheets. The stylesheets are in the order of their discovery, i.e. the sheet with the highest priority is at the
     /// end of this list.
     /// </summary>
     private List<ExCSS.Stylesheet> _styleSheets = new List<ExCSS.Stylesheet>();

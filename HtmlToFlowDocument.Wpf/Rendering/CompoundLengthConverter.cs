@@ -29,7 +29,7 @@ namespace HtmlToFlowDocument.Rendering
     /// <summary>
     /// Converts a reference length and a percentage value to an absolute length.
     /// </summary>
-    /// <param name="values">An array of two values, the column width and the height of the document. This value is produced by a multibinding.</param>
+    /// <param name="values">An array of two values: the column width and the height of the document. This value is produced by a multibinding.</param>
     /// <param name="targetType">The type of the binding target property.</param>
     /// <param name="parameter">Enumerable, consisting of tuples. The first member of each tuple is the size type, the second is the value.</param>
     /// <param name="culture">The culture to use in the converter.</param>

@@ -33,9 +33,11 @@ is a HtmlToFlowDocument.Dom.Section,
 which can then be inserted into a HtmlToFlowDocument.Dom.FlowDocument instance later on.
 3. *cssStyleSheetProvider*: a function, which takes as only argument the relative name of a .CSS file. It is your responsibility to fetch the .CSS file, and return the text of the .CSS file as the return value of the provided function.
 
-The return value of `Convert` is a tree of Dom elements, which in a next step can be converted
-a XAML representation of a FlowDocument, or to plain text. Using the HtmlToFlowDocument.Wpf project, the
-Dom tree can also be converted directly to a FlowDocument.
+The return value of `Convert` is a tree of Dom elements.
+In the next step this Dom tree can be converted into plain text,
+into a XAML representation, and, using the HtmlToFlowDocument.Wpf project, the
+Dom tree can also be converted directly to a FlowDocument. The latter is the most 
+recommened way of creating a FlowDocument, since it preserves the majority of properties.
 
 Example (to convert to Xaml):
 ```
@@ -48,14 +50,14 @@ The `Rendering` namespace contains other renderers as well.
 
 ### Providing images
 
-I decided against encoding images directly into the XAML document. 
-Instead, late binding is used to show images only after the XAML is converted into the corresponding Wpf class.
+I decided against encoding images directly into the DOM tree. 
+Instead, late binding is used to show images only after the DOM tree is converted into the corresponding Wpf classes.
 For example, the Html image tag:
 ```
 <img src="foo.png" />
 ```
 
-is converted to the following XAML string:
+is converted to the following XAML representation:
 
 ```
 <Image Source="{Binding ImageProvider[foo.png]}" />

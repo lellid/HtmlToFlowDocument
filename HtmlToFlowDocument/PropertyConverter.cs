@@ -74,8 +74,6 @@ namespace HtmlToFlowDocument
 
     #endregion
 
-
-
     #region Convert from an attribute value string
 
     public static void Convert(string propertyName, string propertyValue, Dictionary<string, object> propertyDictionary)
