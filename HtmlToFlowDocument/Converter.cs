@@ -694,6 +694,7 @@ namespace HtmlToFlowDocument
       // Decide what XAML element to use for this inline element.
       // Check whether it contains any nested inlines
       bool elementHasChildren = false;
+      bool elementHasBlockChildren = false;
       for (XmlNode htmlNode = htmlElement.FirstChild; htmlNode != null; htmlNode = htmlNode.NextSibling)
       {
         if (htmlNode is XmlElement)
@@ -703,6 +704,7 @@ namespace HtmlToFlowDocument
               htmlChildName == "img" || htmlChildName == "br" || htmlChildName == "hr")
           {
             elementHasChildren = true;
+            elementHasBlockChildren |= HtmlSchema.IsBlockElement(htmlChildName);
             break;
           }
         }
@@ -712,7 +714,6 @@ namespace HtmlToFlowDocument
       // Create currentProperties as a compilation of local, set localProperties
       GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
 
-      Inline xamlElement;
 
       // Handle a ::before pseudo element (if such a rule exists).
       if (null != beforeElementProperties)
@@ -724,7 +725,7 @@ namespace HtmlToFlowDocument
 
         if (!string.IsNullOrEmpty(text))
         {
-          xamlElement = new Run(text);
+          var xamlElement = new Run(text);
           xamlElement.Parent = xamlParentElement;
           xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
@@ -740,27 +741,40 @@ namespace HtmlToFlowDocument
         }
       }
 
-
-      // Handle regular element
-      xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
-      xamlElement.Parent = xamlParentElement;
-      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
-      ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
-
-      // Recurse into element subtree
-      for (XmlNode htmlChildNode = htmlElement.FirstChild;
-          htmlChildNode != null;
-          htmlChildNode = htmlChildNode.NextSibling)
       {
-        AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
+        // Handle regular element
+        TextElement xamlElement;
+        xamlElement = (elementHasChildren ? (Inline)new Span() : (Inline)new Run());
+        xamlElement.Parent = xamlParentElement;
+        xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+        ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+
+        // Recurse into element subtree
+        for (XmlNode htmlChildNode = htmlElement.FirstChild;
+            htmlChildNode != null;
+            htmlChildNode = htmlChildNode.NextSibling)
+        {
+          AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
+        }
+
+        // Add the new element to the parent.
+
+        if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
+          xamlParentElement.AppendChild(xamlElement);
+        else if (xamlElement is Span span && 0 != span.Childs.Count)
+          xamlParentElement.AppendChild(xamlElement);
       }
 
-      // Add the new element to the parent.
+      if (htmlElement.LocalName == "p")
+      {
+        // Handle a paragraph that is embedded as an inline element as if it has a pseudo property which adds a break
+        // Background: sometimes it seems that a span contains a div which contains one or multiple p elements
+        // Because the span forces to be mirrored by a Dom inline element, all child elements must also be inline
+        // and there is no other way to insert a newline by adding a run with a newline at the end of the paragraph's text
+        var xamlElement = new Run("\r\n");
+        xamlParentElement.AppendChild(xamlElement);
+      }
 
-      if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
-        xamlParentElement.AppendChild(xamlElement);
-      else if (xamlElement is Span span && 0 != span.Childs.Count)
-        xamlParentElement.AppendChild(xamlElement);
 
       // Handle an ::after pseudo element (if such a rule exists)
       if (null != afterElementProperties)
@@ -772,7 +786,7 @@ namespace HtmlToFlowDocument
 
         if (!string.IsNullOrEmpty(text))
         {
-          xamlElement = new Run(text);
+          var xamlElement = new Run(text);
           xamlElement.Parent = xamlParentElement;
           xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
