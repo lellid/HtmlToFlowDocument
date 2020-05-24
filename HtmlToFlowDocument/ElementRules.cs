@@ -15,13 +15,13 @@ namespace HtmlToFlowDocument
   /// </summary>
   public class ElementRules
   {
-    static readonly char[] WhitespacesInClassValues = new char[] { ' ', '\t' };
-    static HashSet<string> _validPropertyNames;
+    private static readonly char[] WhitespacesInClassValues = new char[] { ' ', '\t' };
+    private static HashSet<string> _validPropertyNames;
 
     /// <summary>
     /// The XHTML element under consideration.
     /// </summary>
-    XmlElement _xmlElement;
+    private XmlElement _xmlElement;
 
     /// <summary>
     /// Holds the style rules of the HTML element this instance was constructed from
@@ -29,14 +29,14 @@ namespace HtmlToFlowDocument
     /// Please note that this list will not hold the properties of the HTML element given in its other attributes!
     /// The rules are sorted so that the higher priority rules are at the end of the list
     /// </summary>
-    List<StyleRule> _ruleList = new List<StyleRule>();
+    private List<StyleRule> _ruleList = new List<StyleRule>();
 
     /// <summary>
     /// Holds the pseudo element (::before and ::after) style rules of the HTML element this instance was constructed from
     /// from the linked styles of the HTML document.
     /// The rules are sorted so that the higher priority rules are at the end of the list
     /// </summary>
-    List<StyleRule> _pseudoRuleList = new List<StyleRule>();
+    private List<StyleRule> _pseudoRuleList = new List<StyleRule>();
 
 
     static ElementRules()
@@ -299,7 +299,7 @@ namespace HtmlToFlowDocument
     /// <param name="allRules">All rules fro all style sheets, including the local styles of the element given in its style attribute.</param>
     /// <returns>Only those rules that apply to the given Html element. Rules concerning pseudo elements are flagged with IsPseudo=true</returns>
     /// <exception cref="NotImplementedException"></exception>
-    static IEnumerable<(StyleRule Rule, bool IsPseudo)> GetStyleRulesFor(XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, IEnumerable<StyleRule> allRules)
+    private static IEnumerable<(StyleRule Rule, bool IsPseudo)> GetStyleRulesFor(XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, IEnumerable<StyleRule> allRules)
     {
       string elementName = !string.IsNullOrEmpty(xmlElement.LocalName) ? xmlElement.LocalName : null;
       string id = xmlElement.GetAttribute("id");
@@ -392,7 +392,7 @@ namespace HtmlToFlowDocument
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
     /// <exception cref="NotImplementedException"></exception>
-    static bool IsSelected(SimpleSelector simpleSel, string elementName, string elementId, string[] elementClasses, ref bool isPseudoElement)
+    private static bool IsSelected(SimpleSelector simpleSel, string elementName, string elementId, string[] elementClasses, ref bool isPseudoElement)
     {
       if (simpleSel.Text == "*")
         return true;
@@ -430,7 +430,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(CompoundSelector compoundSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
+    private static bool IsSelected(CompoundSelector compoundSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       // all of the elements must give true
       bool isSelected = true;
@@ -455,7 +455,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ListSelector listSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
+    private static bool IsSelected(ListSelector listSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       // one of the selectors must return true;
       bool isSelected = false;
@@ -482,7 +482,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ComplexSelector complexSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
+    private static bool IsSelected(ComplexSelector complexSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       if (!(elementHierarchy[elementHierarchy.Count - 1].xmlElement.Name == elementName))
         throw new ArgumentOutOfRangeException("Last element of elementHierarchy must contain the provided element");
@@ -583,7 +583,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(FirstChildSelector firstChildSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    private static bool IsSelected(FirstChildSelector firstChildSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
     {
       var xmlElement = elementHierarchy[elementHierarchy.Count - 1].xmlElement;
 
@@ -592,7 +592,7 @@ namespace HtmlToFlowDocument
 
       // Count forward to start
 
-      int count = 0;
+      int count = -1;
       XmlNode sib = xmlElement;
       while (!(sib is null))
       {
@@ -600,10 +600,45 @@ namespace HtmlToFlowDocument
           ++count;
         sib = sib.PreviousSibling;
       }
-      // Count is now 1 if xmlElement is the first element
+      // Count is now 0 if xmlElement is the first element
 
       count -= firstChildSelector.Offset;
       return firstChildSelector.Step <= 0 ? count == 0 : count % firstChildSelector.Step == 0;
+    }
+
+    /// <summary>
+    /// Determines whether the XHTML element is selected by this <see cref="FirstChildSelector"/>.
+    /// </summary>
+    /// <param name="firstChildSelector">The first child selecctor.</param>
+    /// <param name="elementName">Name of the XHTML element.</param>
+    /// <param name="elementId">The Id attribute value of the XHTML element.</param>
+    /// <param name="elementClasses">The classes of the XHTML element.</param>
+    /// <param name="elementHierarchy">The hierarchy of XHTML elements. The element under consideration has to be the topmost element.</param>
+    /// <returns>
+    /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
+    /// </returns>
+    private static bool IsSelected(FirstTypeSelector firstTypeSelector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy)
+    {
+      var xmlElement = elementHierarchy[elementHierarchy.Count - 1].xmlElement;
+
+      if (xmlElement is null || xmlElement.ParentNode is null)
+        return false;
+
+      // now go forward to start
+      // if there is another element of the same type, then increase the count
+
+      int count = -1;
+      XmlNode sib = xmlElement;
+      while (!(sib is null))
+      {
+        if (sib is XmlElement sibx && sibx.Name == xmlElement.Name)
+          ++count;
+        sib = sib.PreviousSibling;
+      }
+      // Count is now 0 if xmlElement is the first element
+
+      count -= firstTypeSelector.Offset;
+      return firstTypeSelector.Step <= 0 ? count == 0 : count % firstTypeSelector.Step == 0;
     }
 
     /// <summary>
@@ -618,7 +653,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ISelector selector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
+    private static bool IsSelected(ISelector selector, string elementName, string elementId, string[] elementClasses, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       isPseudo = false;
 
@@ -634,6 +669,8 @@ namespace HtmlToFlowDocument
           return IsSelected(complexSelector, elementName, elementId, elementClasses, elementHierarchy, ref isPseudo);
         case FirstChildSelector firstChildSelector:
           return IsSelected(firstChildSelector, elementName, elementId, elementClasses, elementHierarchy);
+        case FirstTypeSelector firstTypeSelector:
+          return IsSelected(firstTypeSelector, elementName, elementId, elementClasses, elementHierarchy);
         default:
           throw new NotImplementedException();
       }
@@ -649,7 +686,7 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// <c>true</c> if the XHTML element is selected by the selector; otherwise, <c>false</c>.
     /// </returns>
-    static bool IsSelected(ISelector selector, XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
+    private static bool IsSelected(ISelector selector, XmlElement xmlElement, IReadOnlyList<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> elementHierarchy, ref bool isPseudo)
     {
       if (xmlElement is null)
         return false;
