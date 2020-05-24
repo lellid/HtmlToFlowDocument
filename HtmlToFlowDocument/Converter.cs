@@ -7,9 +7,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Xml;
 using HtmlToFlowDocument.Dom;
-using System.Linq;
 
 namespace HtmlToFlowDocument
 {
@@ -20,8 +20,8 @@ namespace HtmlToFlowDocument
   /// </summary>
   public class Converter
   {
-    static readonly ExCSS.Length ZeroPixel = new ExCSS.Length(0, ExCSS.Length.Unit.Px);
-    static readonly ExCSS.Length OnePixel = new ExCSS.Length(1, ExCSS.Length.Unit.Px);
+    private static readonly ExCSS.Length ZeroPixel = new ExCSS.Length(0, ExCSS.Length.Unit.Px);
+    private static readonly ExCSS.Length OnePixel = new ExCSS.Length(1, ExCSS.Length.Unit.Px);
 
 
     /// <summary>
@@ -633,7 +633,7 @@ namespace HtmlToFlowDocument
       }
       else if (htmlNode is XmlText)
       {
-        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: true);
+        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: _isWhitespaceSignificant);
       }
       else if (htmlNode is XmlWhitespace && _isWhitespaceSignificant)
       {
@@ -694,6 +694,7 @@ namespace HtmlToFlowDocument
       // Decide what XAML element to use for this inline element.
       // Check whether it contains any nested inlines
       bool elementHasChildren = false;
+      bool elementHasBlockChildren = false;
       for (XmlNode htmlNode = htmlElement.FirstChild; htmlNode != null; htmlNode = htmlNode.NextSibling)
       {
         if (htmlNode is XmlElement)
@@ -703,6 +704,7 @@ namespace HtmlToFlowDocument
               htmlChildName == "img" || htmlChildName == "br" || htmlChildName == "hr")
           {
             elementHasChildren = true;
+            elementHasBlockChildren |= HtmlSchema.IsBlockElement(htmlChildName);
             break;
           }
         }
@@ -712,7 +714,6 @@ namespace HtmlToFlowDocument
       // Create currentProperties as a compilation of local, set localProperties
       GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
 
-      Inline xamlElement;
 
       // Handle a ::before pseudo element (if such a rule exists).
       if (null != beforeElementProperties)
@@ -724,7 +725,7 @@ namespace HtmlToFlowDocument
 
         if (!string.IsNullOrEmpty(text))
         {
-          xamlElement = new Run(text);
+          var xamlElement = new Run(text);
           xamlElement.Parent = xamlParentElement;
           xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
@@ -740,27 +741,40 @@ namespace HtmlToFlowDocument
         }
       }
 
-
-      // Handle regular element
-      xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
-      xamlElement.Parent = xamlParentElement;
-      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
-      ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
-
-      // Recurse into element subtree
-      for (XmlNode htmlChildNode = htmlElement.FirstChild;
-          htmlChildNode != null;
-          htmlChildNode = htmlChildNode.NextSibling)
       {
-        AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
+        // Handle regular element
+        TextElement xamlElement;
+        xamlElement = (elementHasChildren ? (Inline)new Span() : (Inline)new Run());
+        xamlElement.Parent = xamlParentElement;
+        xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+        ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+
+        // Recurse into element subtree
+        for (XmlNode htmlChildNode = htmlElement.FirstChild;
+            htmlChildNode != null;
+            htmlChildNode = htmlChildNode.NextSibling)
+        {
+          AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
+        }
+
+        // Add the new element to the parent.
+
+        if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
+          xamlParentElement.AppendChild(xamlElement);
+        else if (xamlElement is Span span && 0 != span.Childs.Count)
+          xamlParentElement.AppendChild(xamlElement);
       }
 
-      // Add the new element to the parent.
+      if (htmlElement.LocalName == "p")
+      {
+        // Handle a paragraph that is embedded as an inline element as if it has a pseudo property which adds a break
+        // Background: sometimes it seems that a span contains a div which contains one or multiple p elements
+        // Because the span forces to be mirrored by a Dom inline element, all child elements must also be inline
+        // and there is no other way to insert a newline by adding a run with a newline at the end of the paragraph's text
+        var xamlElement = new Run("\r\n");
+        xamlParentElement.AppendChild(xamlElement);
+      }
 
-      if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
-        xamlParentElement.AppendChild(xamlElement);
-      else if (xamlElement is Span span && 0 != span.Childs.Count)
-        xamlParentElement.AppendChild(xamlElement);
 
       // Handle an ::after pseudo element (if such a rule exists)
       if (null != afterElementProperties)
@@ -772,7 +786,7 @@ namespace HtmlToFlowDocument
 
         if (!string.IsNullOrEmpty(text))
         {
-          xamlElement = new Run(text);
+          var xamlElement = new Run(text);
           xamlElement.Parent = xamlParentElement;
           xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
@@ -795,8 +809,26 @@ namespace HtmlToFlowDocument
       // Remove control characters
       if (!preserveControlChars)
       {
+        bool isInWhiteSpace = false;
         for (int i = 0; i < textData.Length; i++)
         {
+          if (char.IsWhiteSpace(textData[i]))
+          {
+            // replace contiguous whitespaces by one single space
+            if (!isInWhiteSpace)
+            {
+              isInWhiteSpace = true;
+              textData = textData.Insert(i++, " "); // increment to compensate for character insertion
+            }
+            textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+
+            continue;
+          }
+          else
+          {
+            isInWhiteSpace = false;
+          }
+
           if (char.IsControl(textData[i]))
           {
             textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
@@ -2686,7 +2718,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    static ExCSS.Color? GetColor(object value, ExCSS.Color normalColor)
+    private static ExCSS.Color? GetColor(object value, ExCSS.Color normalColor)
     {
       if (value is ExCSS.Color color)
         return color;
@@ -2708,7 +2740,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    ExCSS.Length GetMargin(object value, ref double? currentFontSize, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    private ExCSS.Length GetMargin(object value, ref double? currentFontSize, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (value is ExCSS.Length l)
       {
@@ -2728,7 +2760,7 @@ namespace HtmlToFlowDocument
         return ZeroPixel;
     }
 
-    CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    private CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (propertyName != "width" && propertyName != "height")
         throw new ArgumentException("must either be 'width' or 'height'", nameof(propertyName));
@@ -2821,7 +2853,7 @@ namespace HtmlToFlowDocument
     /// <param name="elementProperties">The properties of the element.</param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException">GetAutoCompoundLength is suited only for width and height</exception>
-    CompoundLength CreateCompoundLengthFromAutoSize(string propertyName, Dictionary<string, object> elementProperties, List<(System.Xml.XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    private CompoundLength CreateCompoundLengthFromAutoSize(string propertyName, Dictionary<string, object> elementProperties, List<(System.Xml.XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
     {
       var result = new CompoundLength
       {
@@ -2926,7 +2958,7 @@ namespace HtmlToFlowDocument
       return result;
     }
 
-    ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    private ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (propertyName != "max-width" && propertyName != "max-height")
         throw new ArgumentException("must either be 'max-width' or 'max-height'", nameof(propertyName));
@@ -2986,10 +3018,7 @@ namespace HtmlToFlowDocument
       return result;
     }
 
-
-
-
-    static ExCSS.Length? GetFontSize(object value)
+    private static ExCSS.Length? GetFontSize(object value)
     {
       if (value is ExCSS.Length l)
         return l;
@@ -3018,7 +3047,7 @@ namespace HtmlToFlowDocument
 
     }
 
-    static double GetAbsoluteFontSizeForContext(string property, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? levelToBeginWith)
+    private static double GetAbsoluteFontSizeForContext(string property, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? levelToBeginWith)
     {
       ExCSS.Length? result = null;
       levelToBeginWith = levelToBeginWith ?? sourceContext.Count - 1;
@@ -3059,7 +3088,7 @@ namespace HtmlToFlowDocument
       return inPx;
     }
 
-    static ExCSS.Length Multiply(ExCSS.Length l1, ExCSS.Length l2)
+    private static ExCSS.Length Multiply(ExCSS.Length l1, ExCSS.Length l2)
     {
       if (l1.IsAbsolute && l2.IsAbsolute)
         throw new ArgumentException("Both l1 and l2 are absolute lengths");
@@ -3081,7 +3110,7 @@ namespace HtmlToFlowDocument
       throw new ArgumentException($"Can not multiply length of type {l1.Type} and {l2.Type}");
     }
 
-    static ExCSS.Length? Add(ExCSS.Length l1, ExCSS.Length? l2n)
+    private static ExCSS.Length? Add(ExCSS.Length l1, ExCSS.Length? l2n)
     {
       if (l2n is null)
         return l1;
@@ -3433,7 +3462,7 @@ namespace HtmlToFlowDocument
 
     #endregion Private Methods
 
-    static void DebugAssert(bool condition)
+    private static void DebugAssert(bool condition)
     {
       if (!condition)
       {
@@ -3441,7 +3470,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    static (double? Value, string Unit) GetLocalSizeFromInheritedBlockSize((double? Value, string Unit) inherited, (double? Value, string Unit) local)
+    private static (double? Value, string Unit) GetLocalSizeFromInheritedBlockSize((double? Value, string Unit) inherited, (double? Value, string Unit) local)
     {
       if (local.Unit == "%")
       {
