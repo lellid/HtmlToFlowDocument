@@ -1,3 +1,4 @@
+# Pulled from https://github.com/HockeyJustin/ExCSS_Core
 # ExCSS StyleSheet Parser for .NET - It's *BADA55!*
 
 ExCSS (Pronounced Excess) is a CSS 2.1 and CSS 3 parser for .NET.

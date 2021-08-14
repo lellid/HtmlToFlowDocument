@@ -1,11 +1,13 @@
-﻿// // Copyright (c) Microsoft. All rights reserved.
-// // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Dr. Dirk Lellinger. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Xml;
 using HtmlToFlowDocument.Dom;
 
@@ -18,79 +20,14 @@ namespace HtmlToFlowDocument
   /// </summary>
   public class Converter
   {
-    // ----------------------------------------------------------------
-    //
-    // Internal Constants
-    //
-    // ----------------------------------------------------------------
+    private static readonly ExCSS.Length ZeroPixel = new ExCSS.Length(0, ExCSS.Length.Unit.Px);
+    private static readonly ExCSS.Length OnePixel = new ExCSS.Length(1, ExCSS.Length.Unit.Px);
 
-    // The constants reprtesent all Xaml names used in a conversion
-    public const string XamlFlowDocument = "FlowDocument";
-    public const string XamlRun = "Run";
-    public const string XamlSpan = "Span";
-    public const string XamlHyperlink = "Hyperlink";
-    public const string XamlHyperlinkNavigateUri = "NavigateUri";
-    public const string XamlHyperlinkTargetName = "TargetName";
-    public const string XamlSection = "Section";
-    public const string XamlList = "List";
-    public const string XamlListMarkerStyle = "MarkerStyle";
-    public const string XamlListMarkerStyleNone = "None";
-    public const string XamlListMarkerStyleDecimal = "Decimal";
-    public const string XamlListMarkerStyleDisc = "Disc";
-    public const string XamlListMarkerStyleCircle = "Circle";
-    public const string XamlListMarkerStyleSquare = "Square";
-    public const string XamlListMarkerStyleBox = "Box";
-    public const string XamlListMarkerStyleLowerLatin = "LowerLatin";
-    public const string XamlListMarkerStyleUpperLatin = "UpperLatin";
-    public const string XamlListMarkerStyleLowerRoman = "LowerRoman";
-    public const string XamlListMarkerStyleUpperRoman = "UpperRoman";
-    public const string XamlListItem = "ListItem";
-    public const string XamlLineBreak = "LineBreak";
-    public const string XamlParagraph = "Paragraph";
-    public const string XamlMargin = "Margin";
-    public const string XamlPadding = "Padding";
-    public const string XamlBorderBrush = "BorderBrush";
-    public const string XamlBorderThickness = "BorderThickness";
-    public const string XamlTable = "Table";
-    public const string XamlTableColumn = "TableColumn";
-    public const string XamlTableRowGroup = "TableRowGroup";
-    public const string XamlTableRow = "TableRow";
-    public const string XamlTableCell = "TableCell";
-    public const string XamlTableCellBorderThickness = "BorderThickness";
-    public const string XamlTableCellBorderBrush = "BorderBrush";
-    public const string XamlTableCellColumnSpan = "ColumnSpan";
-    public const string XamlTableCellRowSpan = "RowSpan";
-    public const string XamlWidth = "Width";
-    public const string XamlBrushesBlack = "Black";
-    public const string XamlFontFamily = "FontFamily";
-    public const string XamlFontSize = "FontSize";
-    public const string XamlFontSizeXxLarge = "22pt"; // "XXLarge";
-    public const string XamlFontSizeXLarge = "20pt"; // "XLarge";
-    public const string XamlFontSizeLarge = "18pt"; // "Large";
-    public const string XamlFontSizeMedium = "16pt"; // "Medium";
-    public const string XamlFontSizeSmall = "12pt"; // "Small";
-    public const string XamlFontSizeXSmall = "10pt"; // "XSmall";
-    public const string XamlFontSizeXxSmall = "8pt"; // "XXSmall";
-    public const string XamlFontWeight = "FontWeight";
-    public const string XamlFontWeightBold = "Bold";
-    public const string XamlFontStyle = "FontStyle";
-    public const string XamlForeground = "Foreground";
-    public const string XamlBackground = "Background";
-    public const string XamlTextDecorations = "TextDecorations";
-    public const string XamlTextDecorationsUnderline = "Underline";
-    public const string XamlTextIndent = "TextIndent";
-    public const string XamlTextAlignment = "TextAlignment";
-    // ---------------------------------------------------------------------
-    //
-    // Private Fields
-    //
-    // ---------------------------------------------------------------------
 
-    #region Private Fields
-
-    private static readonly string XamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
-
-    #endregion Private Fields
+    /// <summary>
+    /// The font size of the root DOM node in pixel. Default value is 16.
+    /// </summary>
+    public float FontSizeRootPx { get; set; } = 16;
 
     /// <summary>
     /// Gets or sets a value indicating whether during the conversion process the DOM elements are attached as tags to the UI elements.
@@ -101,52 +38,156 @@ namespace HtmlToFlowDocument
     /// </value>
     public bool AttachSourceAsTags { get; set; }
 
+    // -------------- Operational data ---------------------------
+
+    /// <summary>
+    /// True if the converter is e.g. in a 'pre' element, in which whitespace is important.
+    /// </summary>
+    private bool _isWhitespaceSignificant;
+
+    /// <summary> Stores a parent DOM element for the case when selected fragment is inline.</summary>
+    private static TextElement _inlineFragmentParentElement;
+
+
+
     // ---------------------------------------------------------------------
     //
     // Internal Methods
     //
     // ---------------------------------------------------------------------
 
-    #region Internal Methods
+    #region Public Methods
 
     /// <summary>
-    ///     Converts an Html string into Xaml string.
+    /// Converts an Html text into a DOM representation, consisting of elements that derive from <see cref="TextElement"/>.
     /// </summary>
     /// <param name="htmlString">
-    ///     Input html which may be badly formated xml.
+    /// The Html text to convert.
     /// </param>
     /// <param name="asFlowDocument">
-    ///     true indicates that we need a FlowDocument as a root element;
-    ///     false means that Section or Span elements will be used
-    ///     dependeing on StartFragment/EndFragment comments locations.
+    /// A value of true indicates that we need a FlowDocument as a root element;
+    /// a value of false means that Section or Span elements will be used
+    /// depending on StartFragment/EndFragment comments locations.
+    /// </param>
+    /// <param name="cssStyleSheetProvider">
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
+    /// The return value is the contents of the CSS style sheet with that name.
     /// </param>
     /// <returns>
-    ///     Well-formed xml representing XAML equivalent for the input html string.
+    /// The root <see cref="TextElement"/> of the Dom tree that represents the XHTML tree.
     /// </returns>
-    public TextElement Convert(string htmlString, bool asFlowDocument, Func<string, string> cssStyleSheetProvider)
+    public TextElement Convert(string htmlString, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
     {
       // Create well-formed Xml from Html string
-      XmlElement htmlElement = HtmlParser.ParseHtml(htmlString);
+      XmlElement htmlElement = HtmlParsing.HtmlParser.ParseHtml(htmlString);
+      return Convert(htmlElement, asFlowDocument, cssStyleSheetProvider, htmlFileName);
+    }
+
+    /// <summary>
+    /// Converts an XHtml text into a DOM representation, consisting of elements that derive from <see cref="TextElement"/>.
+    /// </summary>
+    /// <param name="xhtmlString">
+    /// The XHtml text to convert.
+    /// </param>
+    /// <param name="asFlowDocument">
+    /// A value of true indicates that we need a FlowDocument as a root element;
+    /// a value of false means that Section or Span elements will be used
+    /// depending on StartFragment/EndFragment comments locations.
+    /// </param>
+    /// <param name="cssStyleSheetProvider">
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
+    /// The return value is the contents of the CSS style sheet with that name.
+    /// </param>
+    /// <returns>
+    /// The root <see cref="TextElement"/> of the Dom tree that represents the XHTML tree.
+    /// </returns>
+    /// <remarks>
+    /// This method has a fallback mechanism: if conversion from XHTML to a XML document fails, the
+    /// text is treated as normal HTML text, and tried to normalized first.
+    /// </remarks>
+    public TextElement ConvertXHtml(string xhtmlString, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string xhtmlFileName)
+    {
+      XmlElement htmlElement;
+
+      // First try to load it directly, this should work if this is truly XHTML
+      try
+      {
+        var doc = new XmlDocument() { PreserveWhitespace = true };
+        doc.LoadXml(xhtmlString);
+        htmlElement = doc.DocumentElement;
+      }
+      catch (Exception)
+      {
+        // if parsing failed, then handle it as normal Html
+        // Create well-formed Xml from Html string
+        htmlElement = HtmlParsing.HtmlParser.ParseHtml(xhtmlString);
+      }
+
+      return Convert(htmlElement, asFlowDocument, cssStyleSheetProvider, xhtmlFileName);
+    }
+
+
+
+    /// <summary>
+    /// Converts an XHTML element tree into a DOM representation, consisting of elements that derive from <see cref="TextElement"/>.
+    /// </summary>
+    /// <param name="htmlElement">
+    /// The root element of the XHTML tree. Typically, this is the 'html' element.
+    /// </param>
+    /// <param name="asFlowDocument">
+    /// A value of true indicates that we need a FlowDocument as a root element;
+    /// a value of false means that Section or Span elements will be used
+    /// depending on StartFragment/EndFragment comments locations.
+    /// </param>
+    /// <param name="cssStyleSheetProvider">
+    /// A function that provides CSS style sheets on demand.
+    /// The 1st argument is a string that is the name (relative or absolute) of the style sheet.
+    /// The 2nd argument is a name of the HTML file that references this style sheet. Can be used to get the absolute name of the style sheet, if only a relative name was given.
+    /// The return value is the contents of the CSS style sheet with that name.
+    /// </param>
+    /// <returns>
+    /// The root <see cref="TextElement"/> of the Dom tree that represents the XHTML tree.
+    /// </returns>
+    public TextElement Convert(XmlElement htmlElement, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
+    {
+      // Source context is a stack of all elements - ancestors of a parentElement
+      var sourceContext = new List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)>(10);
+
 
       // Decide what name to use as a root
       TextElement xamlFlowDocumentElement = asFlowDocument ? (Block)new FlowDocument() : (Block)new Section();
-      xamlFlowDocumentElement.FontSize = 16; // base font size of the document
+      xamlFlowDocumentElement.FontSize = FontSizeRootPx; // base font size of the document
       if (AttachSourceAsTags)
-      { xamlFlowDocumentElement.Tag = htmlElement; }
+      {
+        xamlFlowDocumentElement.Tag = htmlElement;
+        htmlElement.SetAttribute("OriginatedFromSource", htmlFileName);
+      }
 
       // Extract style definitions from all STYLE elements in the document
-      CssStylesheet stylesheet = new CssStylesheet(htmlElement, cssStyleSheetProvider);
+      CssStylesheets stylesheet = new CssStylesheets(htmlElement, cssStyleSheetProvider, htmlFileName);
 
-      // Source context is a stack of all elements - ancestors of a parentElement
-      List<XmlElement> sourceContext = new List<XmlElement>(10);
 
       // Clear fragment parent
       _inlineFragmentParentElement = null;
 
       // convert root html element
-      var inheritedProperties = new Hashtable();
-      inheritedProperties.Add("font-size-absolute", 12.0);
-      AddBlock(xamlFlowDocumentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+      var rootProperties = new Dictionary<string, object>
+      {
+        { "sourceHtmlFileName", htmlFileName },
+        { "font-size", new ExCSS.Length(FontSizeRootPx, ExCSS.Length.Unit.Px) },
+        { "width", new ExCSS.Length(100, ExCSS.Length.Unit.Vw) },
+        { "height", new ExCSS.Length(100, ExCSS.Length.Unit.Vh) },
+        { "max-width", new ExCSS.Length(100, ExCSS.Length.Unit.Vw) },
+        { "max-height", new ExCSS.Length(100, ExCSS.Length.Unit.Vh) }
+      };
+
+      sourceContext.Add((null, rootProperties));
+
+      AddBlock(xamlFlowDocumentElement, htmlElement, stylesheet, sourceContext);
 
       // In case if the selected fragment is inline, extract it into a separate Span wrapper
       if (!asFlowDocument)
@@ -234,8 +275,11 @@ namespace HtmlToFlowDocument
     ///     it could one of its following siblings.
     ///     The caller must use this node to get to next sibling from it.
     /// </returns>
-    private XmlNode AddBlock(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private XmlNode AddBlock(
+      TextElement xamlParentElement,
+      XmlNode htmlNode,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (htmlNode is XmlComment)
       {
@@ -243,18 +287,14 @@ namespace HtmlToFlowDocument
       }
       else if (htmlNode is XmlText)
       {
-        htmlNode = AddImplicitParagraph(xamlParentElement, htmlNode, inheritedProperties, stylesheet,
-            sourceContext);
+        htmlNode = AddImplicitParagraph(xamlParentElement, htmlNode, stylesheet, sourceContext);
       }
-      else if (htmlNode is XmlElement)
+      else if (htmlNode is XmlElement htmlElement)
       {
-        // Identify element name
-        XmlElement htmlElement = (XmlElement)htmlNode;
-
         string htmlElementName = htmlElement.LocalName; // Keep the name case-sensitive to check xml names
         string htmlElementNamespace = htmlElement.NamespaceURI;
 
-        if (htmlElementNamespace != HtmlParser.XhtmlNamespace)
+        if (htmlElementNamespace != HtmlParsing.HtmlParser.XhtmlNamespace)
         {
           // Non-html element. skip it
           // Isn't it too agressive? What if this is just an error in html tag name?
@@ -264,7 +304,8 @@ namespace HtmlToFlowDocument
         }
 
         // Put source element to the stack
-        sourceContext.Add(htmlElement);
+        if (!object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement))
+          sourceContext.Add((htmlElement, new Dictionary<string, object>()));
 
         // Convert the name to lowercase, because html elements are case-insensitive
         htmlElementName = htmlElementName.ToLower();
@@ -282,7 +323,7 @@ namespace HtmlToFlowDocument
           case "caption":
           case "center":
           case "cite":
-            AddSection(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddSection(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
 
           // Paragraphs:
@@ -299,7 +340,7 @@ namespace HtmlToFlowDocument
           case "dl": // ???
           case "dt": // ???
           case "tt": // ???
-            AddParagraph(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddParagraph(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
 
           case "ol":
@@ -307,23 +348,22 @@ namespace HtmlToFlowDocument
           case "dir": //  treat as UL element
           case "menu": //  treat as UL element
                        // List element conversion
-            AddList(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddList(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
           case "li":
             // LI outside of OL/UL
             // Collect all sibling LIs, wrap them into a List and then proceed with the element following the last of LIs
-            htmlNode = AddOrphanListItems(xamlParentElement, htmlElement, inheritedProperties, stylesheet,
-                sourceContext);
+            htmlNode = AddOrphanListItems(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
 
           case "img":
             // TODO: Add image processing
-            AddImage(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddImage(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
 
           case "table":
             // hand off to table parsing function which will perform special table syntax checks
-            AddTable(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddTable(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
 
           case "tbody":
@@ -348,13 +388,12 @@ namespace HtmlToFlowDocument
 
           default:
             // Wrap a sequence of inlines into an implicit paragraph
-            htmlNode = AddImplicitParagraph(xamlParentElement, htmlElement, inheritedProperties, stylesheet,
-                sourceContext);
+            htmlNode = AddImplicitParagraph(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
         }
 
         // Remove the element from the stack
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlElement);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
 
@@ -395,16 +434,15 @@ namespace HtmlToFlowDocument
     /// <param name="htmlElement">
     ///     XmlElement representing Html element to be converted
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     properties inherited from parent context
-    /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
     /// true indicates that a content added by this call contains at least one block element
     /// </param>
-    private void AddSection(TextElement xamlParentElement, XmlElement htmlElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddSection(
+      TextElement xamlParentElement,
+      XmlElement htmlElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Analyze the content of htmlElement to decide what xaml element to choose - Section or Paragraph.
       // If this Div has at least one block child then we need to use Section, otherwise use Paragraph
@@ -427,20 +465,18 @@ namespace HtmlToFlowDocument
       if (!htmlElementContainsBlocks)
       {
         // The Div does not contain any block elements, so we can treat it as a Paragraph
-        AddParagraph(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+        AddParagraph(xamlParentElement, htmlElement, stylesheet, sourceContext);
       }
       else
       {
         // The Div has some nested blocks, so we treat it as a Section
 
-        // Create currentProperties as a compilation of local and inheritedProperties, set localProperties
-        Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
-            stylesheet,
-            sourceContext);
+        // Create currentProperties as a compilation of local, set localProperties
+        GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
         // Create a XAML element corresponding to this html element
         TextElement xamlElement = new Section() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
-        ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/true);
+        ApplyLocalProperties(xamlElement, sourceContext, isBlock: true);
 
         // Decide whether we can unwrap this element as not having any formatting significance.
         if (!xamlElement.HasAttributes)
@@ -456,7 +492,7 @@ namespace HtmlToFlowDocument
             htmlChildNode != null;
             htmlChildNode = htmlChildNode?.NextSibling)
         {
-          htmlChildNode = AddBlock(xamlElement, htmlChildNode, currentProperties, stylesheet, sourceContext);
+          htmlChildNode = AddBlock(xamlElement, htmlChildNode, stylesheet, sourceContext);
         }
 
         // Add the new element to the parent.
@@ -476,33 +512,37 @@ namespace HtmlToFlowDocument
     /// <param name="htmlElement">
     ///     XmlElement representing Html element to be converted
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     properties inherited from parent context
-    /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
     /// true indicates that a content added by this call contains at least one block element
     /// </param>
-    private void AddParagraph(TextElement xamlParentElement, XmlElement htmlElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddParagraph(
+      TextElement xamlParentElement,
+      XmlElement htmlElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement,
+      Dictionary<string, object> elementProperties)> sourceContext)
     {
-      // Create currentProperties as a compilation of local and inheritedProperties, set localProperties
-      Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
-          stylesheet,
-          sourceContext);
+      // Create currentProperties as a compilation of local, set localProperties
+      GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
+
+      if (htmlElement.Name == "pre")
+        _isWhitespaceSignificant = true;
 
       // Create a XAML element corresponding to this html element
       Block xamlElement = new Paragraph() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
-      ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/true);
+      ApplyLocalProperties(xamlElement, sourceContext, isBlock: true);
 
       // Recurse into element subtree
       for (XmlNode htmlChildNode = htmlElement.FirstChild;
           htmlChildNode != null;
           htmlChildNode = htmlChildNode.NextSibling)
       {
-        AddInline(xamlElement, htmlChildNode, currentProperties, stylesheet, sourceContext);
+        AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
       }
+
+      if (htmlElement.Name == "pre")
+        _isWhitespaceSignificant = true;
 
       // Add the new element to the parent.
       xamlParentElement.AppendChild(xamlElement);
@@ -518,9 +558,6 @@ namespace HtmlToFlowDocument
     /// <param name="htmlNode">
     ///     XmlNode starting a collection of implicitly wrapped inlines.
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     properties inherited from parent context
-    /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
     /// true indicates that a content added by this call contains at least one block element
@@ -528,8 +565,11 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     The last htmlNode added to the implicit paragraph
     /// </returns>
-    private XmlNode AddImplicitParagraph(TextElement xamlParentElement, XmlNode htmlNode,
-        Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private XmlNode AddImplicitParagraph(
+      TextElement xamlParentElement,
+      XmlNode htmlNode,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Collect all non-block elements and wrap them into implicit Paragraph
       Block xamlParagraph = new Paragraph() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlNode : null };
@@ -555,7 +595,7 @@ namespace HtmlToFlowDocument
             // The sequence of non-blocked inlines ended. Stop implicit loop here.
             break;
           }
-          AddInline(xamlParagraph, (XmlElement)htmlNode, inheritedProperties, stylesheet, sourceContext);
+          AddInline(xamlParagraph, (XmlElement)htmlNode, stylesheet, sourceContext);
         }
 
         // Store last processed node to return it at the end
@@ -581,8 +621,11 @@ namespace HtmlToFlowDocument
     //
     // .............................................................
 
-    private void AddInline(TextElement xamlParentElement, XmlNode htmlNode, Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddInline(
+      TextElement xamlParentElement,
+      XmlNode htmlNode,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       if (htmlNode is XmlComment)
       {
@@ -590,14 +633,18 @@ namespace HtmlToFlowDocument
       }
       else if (htmlNode is XmlText)
       {
-        AddTextRun(xamlParentElement, htmlNode.Value);
+        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: _isWhitespaceSignificant);
+      }
+      else if (htmlNode is XmlWhitespace && _isWhitespaceSignificant)
+      {
+        AddTextRun(xamlParentElement, htmlNode.Value, preserveControlChars: true);
       }
       else if (htmlNode is XmlElement)
       {
         XmlElement htmlElement = (XmlElement)htmlNode;
 
         // Check whether this is an html element
-        if (htmlElement.NamespaceURI != HtmlParser.XhtmlNamespace)
+        if (htmlElement.NamespaceURI != HtmlParsing.HtmlParser.XhtmlNamespace)
         {
           return; // Skip non-html elements
         }
@@ -606,15 +653,15 @@ namespace HtmlToFlowDocument
         string htmlElementName = htmlElement.LocalName.ToLower();
 
         // Put source element to the stack
-        sourceContext.Add(htmlElement);
+        sourceContext.Add((htmlElement, new Dictionary<string, object>()));
 
         switch (htmlElementName)
         {
           case "a":
-            AddHyperlink(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddHyperlink(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
           case "img":
-            AddImage(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+            AddImage(xamlParentElement, htmlElement, stylesheet, sourceContext);
             break;
           case "br":
           case "hr":
@@ -626,25 +673,28 @@ namespace HtmlToFlowDocument
               // Note: actually we do not expect block elements here,
               // but if it happens to be here, we will treat it as a Span.
 
-              AddSpanOrRun(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+              AddSpanOrRun(xamlParentElement, htmlElement, stylesheet, sourceContext);
             }
             break;
         }
         // Ignore all other elements non-(block/inline/image)
 
         // Remove the element from the stack
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlElement);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlElement);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
     }
 
-    private void AddSpanOrRun(TextElement xamlParentElement, XmlElement htmlElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddSpanOrRun(
+      TextElement xamlParentElement,
+      XmlElement htmlElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Decide what XAML element to use for this inline element.
       // Check whether it contains any nested inlines
       bool elementHasChildren = false;
+      bool elementHasBlockChildren = false;
       for (XmlNode htmlNode = htmlElement.FirstChild; htmlNode != null; htmlNode = htmlNode.NextSibling)
       {
         if (htmlNode is XmlElement)
@@ -654,46 +704,135 @@ namespace HtmlToFlowDocument
               htmlChildName == "img" || htmlChildName == "br" || htmlChildName == "hr")
           {
             elementHasChildren = true;
+            elementHasBlockChildren |= HtmlSchema.IsBlockElement(htmlChildName);
             break;
           }
         }
       }
 
-      var xamlElement = elementHasChildren ? (Inline)new Span() : (Inline)new Run();
-      xamlElement.Parent = xamlParentElement;
-      xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
 
-      // Create currentProperties as a compilation of local and inheritedProperties, set localProperties
-      Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
-          stylesheet,
-          sourceContext);
+      // Create currentProperties as a compilation of local, set localProperties
+      GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
 
-      ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/false);
 
-      // Recurse into element subtree
-      for (XmlNode htmlChildNode = htmlElement.FirstChild;
-          htmlChildNode != null;
-          htmlChildNode = htmlChildNode.NextSibling)
+      // Handle a ::before pseudo element (if such a rule exists).
+      if (null != beforeElementProperties)
       {
-        AddInline(xamlElement, htmlChildNode, currentProperties, stylesheet, sourceContext);
+        beforeElementProperties.TryGetValue("content", out var content);
+        var text = content as string;
+        if (null != text && text.Length >= 2 && text[0] == '\"' && text[text.Length - 1] == '\"')
+          text = text.Substring(1, text.Length - 2);
+
+        if (!string.IsNullOrEmpty(text))
+        {
+          var xamlElement = new Run(text);
+          xamlElement.Parent = xamlParentElement;
+          xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+
+          // temporarily replace the source context's top element by the pseudo element
+          var oldElement = sourceContext[sourceContext.Count - 1];
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add((oldElement.xmlElement.OwnerDocument.CreateElement("span"), beforeElementProperties));
+          ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+          // Restore source context
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add(oldElement);
+          xamlParentElement.AppendChild(xamlElement);
+        }
       }
 
-      // Add the new element to the parent.
+      {
+        // Handle regular element
+        TextElement xamlElement;
+        xamlElement = (elementHasChildren ? (Inline)new Span() : (Inline)new Run());
+        xamlElement.Parent = xamlParentElement;
+        xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+        ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+
+        // Recurse into element subtree
+        for (XmlNode htmlChildNode = htmlElement.FirstChild;
+            htmlChildNode != null;
+            htmlChildNode = htmlChildNode.NextSibling)
+        {
+          AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
+        }
+
+        // Add the new element to the parent.
+
+        if (xamlElement is Run run && !string.IsNullOrEmpty(run.Text))
+          xamlParentElement.AppendChild(xamlElement);
+        else if (xamlElement is Span span && 0 != span.Childs.Count)
+          xamlParentElement.AppendChild(xamlElement);
+      }
+
+      if (htmlElement.LocalName == "p")
+      {
+        // Handle a paragraph that is embedded as an inline element as if it has a pseudo property which adds a break
+        // Background: sometimes it seems that a span contains a div which contains one or multiple p elements
+        // Because the span forces to be mirrored by a Dom inline element, all child elements must also be inline
+        // and there is no other way to insert a newline by adding a run with a newline at the end of the paragraph's text
+        var xamlElement = new Run("\r\n");
+        xamlParentElement.AppendChild(xamlElement);
+      }
 
 
-      xamlParentElement.AppendChild(xamlElement);
+      // Handle an ::after pseudo element (if such a rule exists)
+      if (null != afterElementProperties)
+      {
+        afterElementProperties.TryGetValue("content", out var content);
+        var text = content as string;
+        if (null != text && text.Length >= 2 && text[0] == '\"' && text[text.Length - 1] == '\"')
+          text = text.Substring(1, text.Length - 2);
 
+        if (!string.IsNullOrEmpty(text))
+        {
+          var xamlElement = new Run(text);
+          xamlElement.Parent = xamlParentElement;
+          xamlElement.Tag = AttachSourceAsTags ? htmlElement : null;
+
+          // temporarily replace the source context's top element by the pseudo element
+          var oldElement = sourceContext[sourceContext.Count - 1];
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add((oldElement.xmlElement.OwnerDocument.CreateElement("span"), afterElementProperties));
+          ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
+          // Restore source context
+          sourceContext.RemoveAt(sourceContext.Count - 1);
+          sourceContext.Add(oldElement);
+          xamlParentElement.AppendChild(xamlElement);
+        }
+      }
     }
 
     // Adds a text run to a xaml tree
-    private static void AddTextRun(TextElement xamlElement, string textData)
+    private static void AddTextRun(TextElement xamlElement, string textData, bool preserveControlChars = false)
     {
       // Remove control characters
-      for (int i = 0; i < textData.Length; i++)
+      if (!preserveControlChars)
       {
-        if (char.IsControl(textData[i]))
+        bool isInWhiteSpace = false;
+        for (int i = 0; i < textData.Length; i++)
         {
-          textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+          if (char.IsWhiteSpace(textData[i]))
+          {
+            // replace contiguous whitespaces by one single space
+            if (!isInWhiteSpace)
+            {
+              isInWhiteSpace = true;
+              textData = textData.Insert(i++, " "); // increment to compensate for character insertion
+            }
+            textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+
+            continue;
+          }
+          else
+          {
+            isInWhiteSpace = false;
+          }
+
+          if (char.IsControl(textData[i]))
+          {
+            textData = textData.Remove(i--, 1); // decrement i to compensate for character removal
+          }
         }
       }
 
@@ -714,27 +853,27 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private void AddHyperlink(TextElement xamlParentElement, XmlElement htmlElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddHyperlink(
+      TextElement xamlParentElement,
+      XmlElement htmlElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Convert href attribute into NavigateUri and TargetName
       string href = GetAttribute(htmlElement, "href");
       if (href == null)
       {
         // When href attribute is missing - ignore the hyperlink
-        AddSpanOrRun(xamlParentElement, htmlElement, inheritedProperties, stylesheet, sourceContext);
+        AddSpanOrRun(xamlParentElement, htmlElement, stylesheet, sourceContext);
       }
       else
       {
-        // Create currentProperties as a compilation of local and inheritedProperties, set localProperties
-        Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
-            stylesheet,
-            sourceContext);
+        // Create currentProperties as a compilation of local, set localProperties
+        GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
         // Create a XAML element corresponding to this html element
         var xamlElement = new Hyperlink() { Parent = xamlParentElement, Tag = AttachSourceAsTags ? htmlElement : null };
-        ApplyLocalProperties(xamlElement, localProperties, /*isBlock:*/false);
+        ApplyLocalProperties(xamlElement, sourceContext, isBlock: false);
 
         string[] hrefParts = href.Split('#');
         if (hrefParts.Length > 0 && hrefParts[0].Trim().Length > 0)
@@ -751,7 +890,7 @@ namespace HtmlToFlowDocument
             htmlChildNode != null;
             htmlChildNode = htmlChildNode.NextSibling)
         {
-          AddInline(xamlElement, htmlChildNode, currentProperties, stylesheet, sourceContext);
+          AddInline(xamlElement, htmlChildNode, stylesheet, sourceContext);
         }
 
         // Add the new element to the parent.
@@ -759,8 +898,6 @@ namespace HtmlToFlowDocument
       }
     }
 
-    // Stores a parent xaml element for the case when selected fragment is inline.
-    private static TextElement _inlineFragmentParentElement;
 
     // Called when html comment is encountered to store a parent element
     // for the case when the fragment is inline - to extract it to a separate
@@ -821,17 +958,21 @@ namespace HtmlToFlowDocument
     //
     // .............................................................
 
-    private void AddImage(TextElement xamlParentElement, XmlElement htmlElement, Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddImage(
+      TextElement xamlParentElement,
+      XmlElement htmlElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // test if htmlElement has a src attribute, otherwise we can skip over this
       var imageSource = htmlElement.GetAttribute("src");
       if (string.IsNullOrEmpty(imageSource))
         return;
 
+      // if source is a relative name, convert it to an absolute name
+      imageSource = CssStylesheets.GetAbsoluteFileNameForFileRelativeToHtmlFile(imageSource, (string)sourceContext[0].elementProperties["sourceHtmlFileName"]);
 
-      Hashtable currentProperties = GetElementProperties(htmlElement, inheritedProperties, out Hashtable localProperties,
-               stylesheet, sourceContext);
+      GetElementProperties(htmlElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
 
 
@@ -841,13 +982,68 @@ namespace HtmlToFlowDocument
       var xamlImageElement = new Image
       {
         Source = imageSource,
-        Tag = AttachSourceAsTags ? htmlElement : null
+        Tag = AttachSourceAsTags ? htmlElement : null,
       };
+
+      // Image Width and Height
+      // are special insofar that the CSS width and height has priority over the attribute width and height
+      // the attribute width and height are treated as hints about the true dimensions of the image
+      // the CSS width and height then scale the image
+      // if CSS width and height both are set to auto: then the image size is set to its true dimensions
+      // if either CSS width or height are set to auto: then the other dimension is set to its value, and this dimension is set to preserve aspect ratio
+      var cssProperties = new Dictionary<string, object>();
+      stylesheet.GetElementProperties_CSS_Only(htmlElement, sourceContext, cssProperties);
+      var elementProperties = sourceContext[sourceContext.Count - 1].elementProperties;
+
+      if (cssProperties.ContainsKey("width") || cssProperties.ContainsKey("height"))
+      {
+        // CSS properties width and height take precedence, thus ignore the attribute width and height...
+        // a value of 'auto' for width and height is treated as if there is no width or height value set at all,
+        // i.e. width or height is retrieved from the actual image dimensions
+        if (cssProperties.ContainsKey("width"))
+        {
+          if (!(cssProperties["width"] is string s && s == "auto")) // auto is considered here as value not set
+          {
+            elementProperties["width"] = cssProperties["width"]; // make sure that CSS gets precedence (if attribute width was set too, it is overwritten here)
+            xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+          }
+        }
+        if (cssProperties.ContainsKey("height"))
+        {
+          if (!(cssProperties["height"] is string s && s == "auto")) // auto is considered here as value not set
+          {
+            elementProperties["height"] = cssProperties["height"]; // make sure that CSS gets precedence (if attribute height was set too, it is overwritten here)
+            xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+          }
+        }
+      }
+      else if (elementProperties.ContainsKey("width") || elementProperties.ContainsKey("height"))
+      {
+        // use the attribute properties width and height in pixel
+        if (elementProperties.ContainsKey("width"))
+        {
+          xamlImageElement.Width = GetCompoundWidthOrHeightForContext("width", sourceContext);
+        }
+        if (elementProperties.ContainsKey("height"))
+        {
+          xamlImageElement.Height = GetCompoundWidthOrHeightForContext("height", sourceContext);
+        }
+      }
+
+
+      // max-width and max-height
+      xamlImageElement.MaxWidth = GetMaxWidthOrMaxHeightForContext("max-width", sourceContext);
+      xamlImageElement.MaxHeight = GetMaxWidthOrMaxHeightForContext("max-height", sourceContext);
+
+      // Apply the other properties to the container element instead of the image itself
+      ApplyLocalProperties(xamlContainerElement, sourceContext, xamlContainerElement is BlockUIContainer);
+
 
       xamlContainerElement.AppendChild(xamlImageElement); // put the image in the container
       xamlParentElement.AppendChild(xamlContainerElement); // put container in the document
-
     }
+
+
 
     // .............................................................
     //
@@ -865,19 +1061,17 @@ namespace HtmlToFlowDocument
     /// <param name="htmlListElement">
     ///     XmlElement representing Html ul/ol element to be converted
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     properties inherited from parent context
-    /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
-    private void AddList(TextElement xamlParentElement, XmlElement htmlListElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddList(
+      TextElement xamlParentElement,
+      XmlElement htmlListElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       string htmlListElementName = htmlListElement.LocalName.ToLower();
 
-      Hashtable currentProperties = GetElementProperties(htmlListElement, inheritedProperties, out Hashtable localProperties,
-          stylesheet, sourceContext);
+      GetElementProperties(htmlListElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
       // Create Xaml List element
       var xamlListElement = new List()
@@ -891,7 +1085,7 @@ namespace HtmlToFlowDocument
 
       // Apply local properties to list to set marker attribute if specified
       // TODO: Should we have separate list attribute processing function?
-      ApplyLocalProperties(xamlListElement, localProperties, /*isBlock:*/true);
+      ApplyLocalProperties(xamlListElement, sourceContext, isBlock: true);
 
       // Recurse into list subtree
       for (XmlNode htmlChildNode = htmlListElement.FirstChild;
@@ -900,10 +1094,9 @@ namespace HtmlToFlowDocument
       {
         if (htmlChildNode is XmlElement && htmlChildNode.LocalName.ToLower() == "li")
         {
-          sourceContext.Add((XmlElement)htmlChildNode);
-          AddListItem(xamlListElement, (XmlElement)htmlChildNode, currentProperties, stylesheet,
-              sourceContext);
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          sourceContext.Add(((XmlElement)htmlChildNode, new Dictionary<string, object>()));
+          AddListItem(xamlListElement, (XmlElement)htmlChildNode, stylesheet, sourceContext);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
         }
       }
@@ -929,16 +1122,16 @@ namespace HtmlToFlowDocument
     /// <param name="htmlLiElement">
     ///     Start Html li element without parent list
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     Properties inherited from parent context
-    /// </param>
     /// <returns>
     ///     XmlNode representing the first non-li node in the input after one or more li's have been processed.
     /// </returns>
-    private XmlElement AddOrphanListItems(TextElement xamlParentElement, XmlElement htmlLiElement,
-        Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private XmlElement AddOrphanListItems(
+      TextElement xamlParentElement,
+      XmlElement htmlLiElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
-      Debug.Assert(htmlLiElement.LocalName.ToLower() == "li");
+      DebugAssert(htmlLiElement.LocalName.ToLower() == "li");
 
       XmlElement lastProcessedListItemElement = null;
 
@@ -967,7 +1160,7 @@ namespace HtmlToFlowDocument
       // Use properties inherited from xamlParentElement for context
       while (htmlChildNode != null && htmlChildNodeName == "li")
       {
-        AddListItem(xamlListElement, (XmlElement)htmlChildNode, inheritedProperties, stylesheet, sourceContext);
+        AddListItem(xamlListElement, (XmlElement)htmlChildNode, stylesheet, sourceContext);
         lastProcessedListItemElement = (XmlElement)htmlChildNode;
         htmlChildNode = htmlChildNode.NextSibling;
         htmlChildNodeName = htmlChildNode?.LocalName.ToLower();
@@ -988,19 +1181,19 @@ namespace HtmlToFlowDocument
     /// <param name="inheritedProperties">
     ///     Properties inherited from parent context
     /// </param>
-    private void AddListItem(List xamlListElement, XmlElement htmlLiElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddListItem(
+      List xamlListElement,
+      XmlElement htmlLiElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Parameter validation
-      Debug.Assert(xamlListElement != null);
+      DebugAssert(xamlListElement != null);
 
-      Debug.Assert(htmlLiElement != null);
-      Debug.Assert(htmlLiElement.LocalName.ToLower() == "li");
-      Debug.Assert(inheritedProperties != null);
+      DebugAssert(htmlLiElement != null);
+      DebugAssert(htmlLiElement.LocalName.ToLower() == "li");
 
-      Hashtable currentProperties = GetElementProperties(htmlLiElement, inheritedProperties, out Hashtable localProperties,
-          stylesheet, sourceContext);
+      GetElementProperties(htmlLiElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
       var xamlListItemElement = new ListItem() { Parent = xamlListElement, Tag = AttachSourceAsTags ? htmlLiElement : null };
 
@@ -1011,8 +1204,7 @@ namespace HtmlToFlowDocument
           htmlChildNode != null;
           htmlChildNode = htmlChildNode?.NextSibling)
       {
-        htmlChildNode = AddBlock(xamlListItemElement, htmlChildNode, currentProperties, stylesheet,
-            sourceContext);
+        htmlChildNode = AddBlock(xamlListItemElement, htmlChildNode, stylesheet, sourceContext);
       }
 
       // Add resulting ListBoxItem to a xaml parent
@@ -1035,22 +1227,18 @@ namespace HtmlToFlowDocument
     /// <param name="htmlTableElement">
     ///     XmlElement reprsenting the Html table element to be converted
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     Hashtable representing properties inherited from parent context.
-    /// </param>
-    private void AddTable(TextElement xamlParentElement, XmlElement htmlTableElement,
-        Hashtable inheritedProperties,
-        CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddTable(
+      TextElement xamlParentElement,
+      XmlElement htmlTableElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Parameter validation
-      Debug.Assert(htmlTableElement.LocalName.ToLower() == "table");
-      Debug.Assert(xamlParentElement != null);
-      Debug.Assert(inheritedProperties != null);
+      DebugAssert(htmlTableElement.LocalName.ToLower() == "table");
+      DebugAssert(xamlParentElement != null);
 
       // Create current properties to be used by children as inherited properties, set local properties
-      Hashtable currentProperties = GetElementProperties(htmlTableElement, inheritedProperties,
-          out Hashtable localProperties,
-          stylesheet, sourceContext);
+      GetElementProperties(htmlTableElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
       // TODO: process localProperties for tables to override defaults, decide cell spacing defaults
 
@@ -1060,18 +1248,17 @@ namespace HtmlToFlowDocument
       if (singleCell != null)
       {
         //  Need to push skipped table elements onto sourceContext
-        sourceContext.Add(singleCell);
+        sourceContext.Add((singleCell, new Dictionary<string, object>()));
 
         // Add the cell's content directly to parent
         for (XmlNode htmlChildNode = singleCell.FirstChild;
             htmlChildNode != null;
             htmlChildNode = htmlChildNode?.NextSibling)
         {
-          htmlChildNode = AddBlock(xamlParentElement, htmlChildNode, currentProperties, stylesheet,
-              sourceContext);
+          htmlChildNode = AddBlock(xamlParentElement, htmlChildNode, stylesheet, sourceContext);
         }
 
-        Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == singleCell);
+        DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == singleCell);
         sourceContext.RemoveAt(sourceContext.Count - 1);
       }
       else
@@ -1083,13 +1270,13 @@ namespace HtmlToFlowDocument
         ArrayList columnStarts = AnalyzeTableStructure(htmlTableElement, stylesheet);
 
         // Process COLGROUP & COL elements
-        AddColumnInformation(htmlTableElement, xamlTableElement, columnStarts, currentProperties, stylesheet,
+        AddColumnInformation(htmlTableElement, xamlTableElement, columnStarts, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet,
             sourceContext);
 
         // Process table body - TBODY and TR elements
         XmlNode htmlChildNode = htmlTableElement.FirstChild;
 
-        htmlChildNode = ProcessTableChildNode(stylesheet, sourceContext, currentProperties, xamlTableElement, columnStarts, htmlChildNode);
+        htmlChildNode = ProcessTableChildNode(stylesheet, sourceContext, sourceContext[sourceContext.Count - 1].elementProperties, xamlTableElement, columnStarts, htmlChildNode);
 
         if (xamlTableElement.HasChildNodes)
         {
@@ -1098,7 +1285,7 @@ namespace HtmlToFlowDocument
       }
     }
 
-    private XmlNode ProcessTableChildNode(CssStylesheet stylesheet, List<XmlElement> sourceContext, Hashtable currentProperties, Table xamlTableElement, ArrayList columnStarts, XmlNode htmlChildNode)
+    private XmlNode ProcessTableChildNode(CssStylesheets stylesheet, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, Dictionary<string, object> currentProperties, Table xamlTableElement, ArrayList columnStarts, XmlNode htmlChildNode)
     {
       while (htmlChildNode != null)
       {
@@ -1111,17 +1298,15 @@ namespace HtmlToFlowDocument
           var xamlTableBodyElement = new TableRowGroup() { Parent = xamlTableElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
 
-          sourceContext.Add((XmlElement)htmlChildNode);
+          sourceContext.Add(((XmlElement)htmlChildNode, new Dictionary<string, object>()));
 
           // Get properties of Html tbody element
-          Hashtable tbodyElementCurrentProperties = GetElementProperties((XmlElement)htmlChildNode,
-              currentProperties,
-              out Hashtable tbodyElementLocalProperties, stylesheet, sourceContext);
+          GetElementProperties((XmlElement)htmlChildNode, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
           // TODO: apply local properties for tbody
 
           // Process children of htmlChildNode, which is tbody, for tr elements
           AddTableRowsToTableBody(xamlTableBodyElement, htmlChildNode.FirstChild,
-              tbodyElementCurrentProperties,
+              sourceContext[sourceContext.Count - 1].elementProperties,
               columnStarts, stylesheet, sourceContext);
           if (xamlTableBodyElement.HasChildNodes)
           {
@@ -1129,7 +1314,7 @@ namespace HtmlToFlowDocument
             // else: if there is no TRs in this TBody, we simply ignore it
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           htmlChildNode = htmlChildNode.NextSibling;
@@ -1152,12 +1337,12 @@ namespace HtmlToFlowDocument
         }
         else if (htmlChildName == "div")
         {
-          sourceContext.Add((XmlElement)htmlChildNode);
+          sourceContext.Add(((XmlElement)htmlChildNode, new Dictionary<string, object>()));
 
           // Make a recursive call
           ProcessTableChildNode(stylesheet, sourceContext, currentProperties, xamlTableElement, columnStarts, htmlChildNode.FirstChild);
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
           htmlChildNode = htmlChildNode.NextSibling;
 
@@ -1258,8 +1443,8 @@ namespace HtmlToFlowDocument
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
     private static void AddColumnInformation(XmlElement htmlTableElement, Table xamlTableElement,
-        ArrayList columnStartsAllRows, Hashtable currentProperties, CssStylesheet stylesheet,
-        List<XmlElement> sourceContext)
+        ArrayList columnStartsAllRows, Dictionary<string, object> currentProperties, CssStylesheets stylesheet,
+        List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Add column information
       if (columnStartsAllRows != null)
@@ -1289,13 +1474,11 @@ namespace HtmlToFlowDocument
           if (htmlChildNode.LocalName.ToLower() == "colgroup")
           {
             // TODO: add column width information to this function as a parameter and process it
-            AddTableColumnGroup(xamlTableElement, (XmlElement)htmlChildNode, currentProperties, stylesheet,
-                sourceContext);
+            AddTableColumnGroup(xamlTableElement, (XmlElement)htmlChildNode, stylesheet, sourceContext);
           }
           else if (htmlChildNode.LocalName.ToLower() == "col")
           {
-            AddTableColumn(xamlTableElement, (XmlElement)htmlChildNode, currentProperties, stylesheet,
-                sourceContext);
+            AddTableColumn(xamlTableElement, (XmlElement)htmlChildNode, stylesheet, sourceContext);
           }
           else if (htmlChildNode is XmlElement)
           {
@@ -1318,12 +1501,13 @@ namespace HtmlToFlowDocument
     ///     <param name="inheritedProperties">
     ///         Properties inherited from parent context
     ///     </param>
-    private static void AddTableColumnGroup(Table xamlTableElement, XmlElement htmlColgroupElement,
-        Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private static void AddTableColumnGroup(
+      Table xamlTableElement,
+      XmlElement htmlColgroupElement,
+      CssStylesheets stylesheet, List<(XmlElement xmlElement,
+      Dictionary<string, object> elementProperties)> sourceContext)
     {
-      Hashtable currentProperties = GetElementProperties(htmlColgroupElement, inheritedProperties,
-          out Hashtable localProperties,
-          stylesheet, sourceContext);
+      GetElementProperties(htmlColgroupElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
       // TODO: process local properties for colgroup
 
@@ -1332,7 +1516,7 @@ namespace HtmlToFlowDocument
       {
         if (htmlNode is XmlElement && htmlNode.LocalName.ToLower() == "col")
         {
-          AddTableColumn(xamlTableElement, (XmlElement)htmlNode, currentProperties, stylesheet, sourceContext);
+          AddTableColumn(xamlTableElement, (XmlElement)htmlNode, stylesheet, sourceContext);
         }
       }
     }
@@ -1345,16 +1529,15 @@ namespace HtmlToFlowDocument
     /// <param name="htmlColElement">
     ///     XmlElement representing Html col element to be converted
     /// </param>
-    /// <param name="inheritedProperties">
-    ///     properties inherited from parent context
-    /// </param>
     /// <param name="stylesheet"></param>
     /// <param name="sourceContext"></param>
-    private static void AddTableColumn(Table xamlTableElement, XmlElement htmlColElement,
-        Hashtable inheritedProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private static void AddTableColumn(
+      Table xamlTableElement,
+      XmlElement htmlColElement,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
-      Hashtable currentProperties = GetElementProperties(htmlColElement, inheritedProperties, out Hashtable localProperties,
-          stylesheet, sourceContext);
+      GetElementProperties(htmlColElement, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
       var xamlTableColumnElement = new TableColumn();
 
@@ -1375,7 +1558,7 @@ namespace HtmlToFlowDocument
     ///     XmlElement representing the first tr child of the tbody element to be read
     /// </param>
     /// <param name="currentProperties">
-    ///     Hashtable representing current properties of the tbody element that are generated and applied in the
+    ///     Dictionary<string, object> representing current properties of the tbody element that are generated and applied in the
     ///     AddTable function; to be used as inheritedProperties when adding tr elements
     /// </param>
     /// <param name="columnStarts"></param>
@@ -1384,20 +1567,24 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     XmlNode representing the current position of the iterator among tr elements
     /// </returns>
-    private XmlNode AddTableRowsToTableBody(TableRowGroup xamlTableBodyElement, XmlNode htmlTrStartNode,
-        Hashtable currentProperties, ArrayList columnStarts, CssStylesheet stylesheet,
-        List<XmlElement> sourceContext)
+    private XmlNode AddTableRowsToTableBody(
+      TableRowGroup xamlTableBodyElement,
+      XmlNode htmlTrStartNode,
+      Dictionary<string, object> currentProperties,
+      ArrayList columnStarts,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
 
       // Initialize child node for iteratimg through children to the first tr element
       XmlNode htmlChildNode = htmlTrStartNode;
-      ArrayList activeRowSpans = null;
+      List<int> activeRowSpans = null;
       if (columnStarts != null)
       {
-        activeRowSpans = new ArrayList();
+        activeRowSpans = new List<int>();
         InitializeActiveRowSpans(activeRowSpans, columnStarts.Count);
       }
 
@@ -1407,23 +1594,22 @@ namespace HtmlToFlowDocument
         {
           var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
-          sourceContext.Add((XmlElement)htmlChildNode);
+          sourceContext.Add(((XmlElement)htmlChildNode, new Dictionary<string, object>()));
 
           // Get tr element properties
-          Hashtable trElementCurrentProperties = GetElementProperties((XmlElement)htmlChildNode,
-              currentProperties,
-              out Hashtable trElementLocalProperties, stylesheet, sourceContext);
+          GetElementProperties((XmlElement)htmlChildNode, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
           // TODO: apply local properties to tr element
 
-          AddTableCellsToTableRow(xamlTableRowElement, htmlChildNode.FirstChild, trElementCurrentProperties,
+          AddTableCellsToTableRow(xamlTableRowElement, htmlChildNode.FirstChild, sourceContext[sourceContext.Count - 1].elementProperties,
               columnStarts,
               activeRowSpans, stylesheet, sourceContext);
+
           if (xamlTableRowElement.HasChildNodes)
           {
             xamlTableBodyElement.AppendChild(xamlTableRowElement);
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           // Advance
@@ -1435,7 +1621,7 @@ namespace HtmlToFlowDocument
           var xamlTableRowElement = new TableRow() { Parent = xamlTableBodyElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
           // This is incorrect formatting and the column starts should not be set in this case
-          Debug.Assert(columnStarts == null);
+          DebugAssert(columnStarts == null);
 
           htmlChildNode = AddTableCellsToTableRow(xamlTableRowElement, htmlChildNode, currentProperties,
               columnStarts,
@@ -1470,16 +1656,21 @@ namespace HtmlToFlowDocument
     /// <returns>
     ///     XmlElement representing the current position of the iterator among the children of the parent Html tbody/tr element
     /// </returns>
-    private XmlNode AddTableCellsToTableRow(TableRow xamlTableRowElement, XmlNode htmlTdStartNode,
-        Hashtable currentProperties, ArrayList columnStarts, ArrayList activeRowSpans, CssStylesheet stylesheet,
-        List<XmlElement> sourceContext)
+    private XmlNode AddTableCellsToTableRow(
+      TableRow xamlTableRowElement,
+      XmlNode htmlTdStartNode,
+      Dictionary<string, object> currentProperties,
+      ArrayList columnStarts,
+      List<int> activeRowSpans,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
       if (columnStarts != null)
       {
-        Debug.Assert(activeRowSpans.Count == columnStarts.Count);
+        DebugAssert(activeRowSpans.Count == columnStarts.Count);
       }
 
       XmlNode htmlChildNode = htmlTdStartNode;
@@ -1496,11 +1687,9 @@ namespace HtmlToFlowDocument
         {
           var xamlTableCellElement = new TableCell() { Parent = xamlTableRowElement, Tag = AttachSourceAsTags ? htmlChildNode : null };
 
-          sourceContext.Add((XmlElement)htmlChildNode);
+          sourceContext.Add(((XmlElement)htmlChildNode, new Dictionary<string, object>()));
 
-          Hashtable tdElementCurrentProperties = GetElementProperties((XmlElement)htmlChildNode,
-              currentProperties,
-              out Hashtable tdElementLocalProperties, stylesheet, sourceContext);
+          GetElementProperties((XmlElement)htmlChildNode, sourceContext[sourceContext.Count - 1].elementProperties, stylesheet, sourceContext);
 
           // TODO: determine if localProperties can be used instead of htmlChildNode in this call, and if they can,
           // make necessary changes and use them instead.
@@ -1508,22 +1697,22 @@ namespace HtmlToFlowDocument
 
           if (columnStarts != null)
           {
-            Debug.Assert(columnIndex < columnStarts.Count);
+            DebugAssert(columnIndex < columnStarts.Count);
             while (columnIndex < activeRowSpans.Count && (int)activeRowSpans[columnIndex] > 0)
             {
               activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-              Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+              DebugAssert((int)activeRowSpans[columnIndex] >= 0);
               columnIndex++;
             }
-            Debug.Assert(columnIndex < columnStarts.Count);
+            DebugAssert(columnIndex < columnStarts.Count);
             columnStart = (double)columnStarts[columnIndex];
             columnWidth = GetColumnWidth((XmlElement)htmlChildNode);
             columnSpan = CalculateColumnSpan(columnIndex, columnWidth, columnStarts);
             int rowSpan = GetRowSpan((XmlElement)htmlChildNode);
 
             // Column cannot have no span
-            Debug.Assert(columnSpan >= 0);
-            Debug.Assert(columnIndex + columnSpan <= columnStarts.Count);
+            DebugAssert(columnSpan >= 0);
+            DebugAssert(columnIndex + columnSpan <= columnStarts.Count);
 
             xamlTableCellElement.ColumnSpan = columnSpan;
 
@@ -1532,15 +1721,15 @@ namespace HtmlToFlowDocument
                 spannedColumnIndex < columnIndex + columnSpan;
                 spannedColumnIndex++)
             {
-              Debug.Assert(spannedColumnIndex < activeRowSpans.Count);
+              DebugAssert(spannedColumnIndex < activeRowSpans.Count);
               activeRowSpans[spannedColumnIndex] = (rowSpan - 1);
-              Debug.Assert((int)activeRowSpans[spannedColumnIndex] >= 0);
+              DebugAssert((int)activeRowSpans[spannedColumnIndex] >= 0);
             }
 
             columnIndex = columnIndex + columnSpan;
           }
 
-          AddDataToTableCell(xamlTableCellElement, htmlChildNode.FirstChild, tdElementCurrentProperties,
+          AddDataToTableCell(xamlTableCellElement, htmlChildNode.FirstChild, sourceContext[sourceContext.Count - 1].elementProperties,
               stylesheet,
               sourceContext);
           if (xamlTableCellElement.HasChildNodes)
@@ -1548,7 +1737,7 @@ namespace HtmlToFlowDocument
             xamlTableRowElement.AppendChild(xamlTableCellElement);
           }
 
-          Debug.Assert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1] == htmlChildNode);
+          DebugAssert(sourceContext.Count > 0 && sourceContext[sourceContext.Count - 1].xmlElement == htmlChildNode);
           sourceContext.RemoveAt(sourceContext.Count - 1);
 
           htmlChildNode = htmlChildNode.NextSibling;
@@ -1560,6 +1749,16 @@ namespace HtmlToFlowDocument
           htmlChildNode = htmlChildNode.NextSibling;
         }
       }
+
+      // decrement all active row spans to the right of the last column
+      if (null != activeRowSpans)
+      {
+        for (int i = columnIndex; i < activeRowSpans.Count; ++i)
+        {
+          activeRowSpans[i] = Math.Max(activeRowSpans[i] - 1, 0);
+        }
+      }
+
       return htmlChildNode;
     }
 
@@ -1575,20 +1774,23 @@ namespace HtmlToFlowDocument
     /// <param name="currentProperties">
     ///     Current properties for the html td/th element corresponding to xamlTableCellElement
     /// </param>
-    private void AddDataToTableCell(TableCell xamlTableCellElement, XmlNode htmlDataStartNode,
-        Hashtable currentProperties, CssStylesheet stylesheet, List<XmlElement> sourceContext)
+    private void AddDataToTableCell(
+      TableCell xamlTableCellElement,
+      XmlNode htmlDataStartNode,
+      Dictionary<string, object> currentProperties,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
     {
       // Parameter validation
 
-      Debug.Assert(currentProperties != null);
+      DebugAssert(currentProperties != null);
 
       for (XmlNode htmlChildNode = htmlDataStartNode;
           htmlChildNode != null;
           htmlChildNode = htmlChildNode?.NextSibling)
       {
         // Process a new html element and add it to the td element
-        htmlChildNode = AddBlock(xamlTableCellElement, htmlChildNode, currentProperties, stylesheet,
-            sourceContext);
+        htmlChildNode = AddBlock(xamlTableCellElement, htmlChildNode, stylesheet, sourceContext);
       }
     }
 
@@ -1605,10 +1807,10 @@ namespace HtmlToFlowDocument
     ///     all the points which are the starting position of any column in the table, ordered from left to right.
     ///     In case if analisys was impossible we return null.
     /// </returns>
-    private static ArrayList AnalyzeTableStructure(XmlElement htmlTableElement, CssStylesheet stylesheet)
+    private static ArrayList AnalyzeTableStructure(XmlElement htmlTableElement, CssStylesheets stylesheet)
     {
       // Parameter validation
-      Debug.Assert(htmlTableElement.LocalName.ToLower() == "table");
+      DebugAssert(htmlTableElement.LocalName.ToLower() == "table");
       if (!htmlTableElement.HasChildNodes)
       {
         return null;
@@ -1618,7 +1820,7 @@ namespace HtmlToFlowDocument
 
       ArrayList columnStarts = new ArrayList();
       ArrayList activeRowSpans = new ArrayList();
-      Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+      DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
       XmlNode htmlChildNode = htmlTableElement.FirstChild;
       double tableWidth = 0; // Keep track of table width which is the width of its widest row
@@ -1626,7 +1828,7 @@ namespace HtmlToFlowDocument
       // Analyze tbody and tr elements
       while (htmlChildNode != null && columnWidthsAvailable)
       {
-        Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+        DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
         switch (htmlChildNode.LocalName.ToLower())
         {
@@ -1711,11 +1913,11 @@ namespace HtmlToFlowDocument
     ///     In case of non-analizable column width structure return 0;
     /// </returns>
     private static double AnalyzeTbodyStructure(XmlElement htmlTbodyElement, ArrayList columnStarts,
-        ArrayList activeRowSpans, double tableWidth, CssStylesheet stylesheet)
+        ArrayList activeRowSpans, double tableWidth, CssStylesheets stylesheet)
     {
       // Parameter validation
-      Debug.Assert(htmlTbodyElement.LocalName.ToLower() == "tbody");
-      Debug.Assert(columnStarts != null);
+      DebugAssert(htmlTbodyElement.LocalName.ToLower() == "tbody");
+      DebugAssert(columnStarts != null);
 
       double tbodyWidth = 0;
       bool columnWidthsAvailable = true;
@@ -1759,7 +1961,6 @@ namespace HtmlToFlowDocument
       return columnWidthsAvailable ? tbodyWidth : 0;
     }
 
-    static int _debugCounter = 0;
 
     /// <summary>
     ///     Performs a parsing pass over a tr element to read information about column width and rowspan attributes.
@@ -1784,17 +1985,15 @@ namespace HtmlToFlowDocument
     /// </param>
     private static double AnalyzeTrStructure(XmlElement htmlTrElement, ArrayList columnStarts,
         ArrayList activeRowSpans,
-        double tableWidth, CssStylesheet stylesheet)
+        double tableWidth, CssStylesheets stylesheet)
     {
-      ++_debugCounter;
-
       double columnWidth;
 
       // Parameter validation
-      Debug.Assert(htmlTrElement.LocalName.ToLower() == "tr");
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(activeRowSpans != null);
-      Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+      DebugAssert(htmlTrElement.LocalName.ToLower() == "tr");
+      DebugAssert(columnStarts != null);
+      DebugAssert(activeRowSpans != null);
+      DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
       if (!htmlTrElement.HasChildNodes)
       {
@@ -1811,14 +2010,14 @@ namespace HtmlToFlowDocument
       // Skip spanned columns to get to real column start
       if (columnIndex < activeRowSpans.Count)
       {
-        Debug.Assert((double)columnStarts[columnIndex] >= columnStart);
+        DebugAssert((double)columnStarts[columnIndex] >= columnStart);
         if ((double)columnStarts[columnIndex] == columnStart)
         {
           // The new column may be in a spanned area
           while (columnIndex < activeRowSpans.Count && (int)activeRowSpans[columnIndex] > 0)
           {
             activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-            Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+            DebugAssert((int)activeRowSpans[columnIndex] >= 0);
             columnIndex++;
             columnStart = (double)columnStarts[columnIndex];
           }
@@ -1827,17 +2026,17 @@ namespace HtmlToFlowDocument
 
       while (htmlChildNode != null && columnWidthsAvailable)
       {
-        Debug.Assert(columnStarts.Count == activeRowSpans.Count);
+        DebugAssert(columnStarts.Count == activeRowSpans.Count);
 
         VerifyColumnStartsAscendingOrder(columnStarts);
 
         switch (htmlChildNode.LocalName.ToLower())
         {
           case "td":
-            Debug.Assert(columnIndex <= columnStarts.Count);
+            DebugAssert(columnIndex <= columnStarts.Count);
             if (columnIndex < columnStarts.Count)
             {
-              Debug.Assert(columnStart <= (double)columnStarts[columnIndex]);
+              DebugAssert(columnStart <= (double)columnStarts[columnIndex]);
               if (columnStart < (double)columnStarts[columnIndex])
               {
                 columnStarts.Insert(columnIndex, columnStart);
@@ -1868,7 +2067,7 @@ namespace HtmlToFlowDocument
               {
                 // Entire column width can be processed without hitting conflicting row span. This means that
                 // column widths line up and we can process them
-                Debug.Assert(nextColumnIndex <= columnStarts.Count);
+                DebugAssert(nextColumnIndex <= columnStarts.Count);
 
                 // Apply row span to affected columns
                 for (int spannedColumnIndex = columnIndex;
@@ -1876,7 +2075,7 @@ namespace HtmlToFlowDocument
                     spannedColumnIndex++)
                 {
                   activeRowSpans[spannedColumnIndex] = rowSpan - 1;
-                  Debug.Assert((int)activeRowSpans[spannedColumnIndex] >= 0);
+                  DebugAssert((int)activeRowSpans[spannedColumnIndex] >= 0);
                 }
 
                 columnIndex = nextColumnIndex;
@@ -1886,7 +2085,7 @@ namespace HtmlToFlowDocument
 
                 if (columnIndex < activeRowSpans.Count)
                 {
-                  Debug.Assert((double)columnStarts[columnIndex] >= columnStart);
+                  DebugAssert((double)columnStarts[columnIndex] >= columnStart);
                   if ((double)columnStarts[columnIndex] == columnStart)
                   {
                     // The new column may be in a spanned area
@@ -1894,7 +2093,7 @@ namespace HtmlToFlowDocument
                            (int)activeRowSpans[columnIndex] > 0)
                     {
                       activeRowSpans[columnIndex] = (int)activeRowSpans[columnIndex] - 1;
-                      Debug.Assert((int)activeRowSpans[columnIndex] >= 0);
+                      DebugAssert((int)activeRowSpans[columnIndex] >= 0);
                       columnIndex++;
                       if (columnIndex < columnStarts.Count)
                         columnStart = (double)columnStarts[columnIndex];
@@ -1947,12 +2146,20 @@ namespace HtmlToFlowDocument
       rowSpanAsString = GetAttribute(htmlTdElement, "rowspan");
       if (rowSpanAsString != null)
       {
-        if (!int.TryParse(rowSpanAsString, out rowSpan))
+        if (int.TryParse(rowSpanAsString, out rowSpan))
+        {
+          if (rowSpan < 1)
+          {
+            rowSpan = 1;
+          }
+        }
+        else
         {
           // Ignore invalid value of rowspan; treat it as 1
           rowSpan = 1;
         }
       }
+
       else
       {
         // No row span, default is 1
@@ -1985,9 +2192,9 @@ namespace HtmlToFlowDocument
       int spannedColumnIndex;
 
       // Parameter validation
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(0 <= columnIndex && columnIndex <= columnStarts.Count);
-      Debug.Assert(columnWidth > 0);
+      DebugAssert(columnStarts != null);
+      DebugAssert(0 <= columnIndex && columnIndex <= columnStarts.Count);
+      DebugAssert(columnWidth > 0);
 
       columnStart = (double)columnStarts[columnIndex];
       spannedColumnIndex = columnIndex + 1;
@@ -2034,7 +2241,7 @@ namespace HtmlToFlowDocument
     /// <param name="count">
     ///     Size to be give to array list
     /// </param>
-    private static void InitializeActiveRowSpans(ArrayList activeRowSpans, int count)
+    private static void InitializeActiveRowSpans(List<int> activeRowSpans, int count)
     {
       for (int columnIndex = 0; columnIndex < count; columnIndex++)
       {
@@ -2059,8 +2266,8 @@ namespace HtmlToFlowDocument
       double nextColumnStart;
 
       // Parameter validation
-      Debug.Assert(htmlTdElement.LocalName.ToLower() == "td" || htmlTdElement.LocalName.ToLower() == "th");
-      Debug.Assert(columnStart >= 0);
+      DebugAssert(htmlTdElement.LocalName.ToLower() == "td" || htmlTdElement.LocalName.ToLower() == "th");
+      DebugAssert(columnStart >= 0);
 
       nextColumnStart = -1; // -1 indicates inability to calculate columnStart width
 
@@ -2120,10 +2327,10 @@ namespace HtmlToFlowDocument
       int columnSpan;
       double subColumnWidth; // Width of the smallest-grain columns in the table
 
-      Debug.Assert(columnStarts != null);
-      Debug.Assert(columnIndex < columnStarts.Count);
-      Debug.Assert((double)columnStarts[columnIndex] >= 0);
-      Debug.Assert(columnWidth >= 0);
+      DebugAssert(columnStarts != null);
+      DebugAssert(columnIndex < columnStarts.Count);
+      DebugAssert((double)columnStarts[columnIndex] >= 0);
+      DebugAssert(columnWidth >= 0);
 
       columnSpanningIndex = columnIndex;
       columnSpanningValue = 0;
@@ -2134,7 +2341,7 @@ namespace HtmlToFlowDocument
       {
         subColumnWidth = (double)columnStarts[columnSpanningIndex + 1] -
                          (double)columnStarts[columnSpanningIndex];
-        Debug.Assert(subColumnWidth > 0);
+        DebugAssert(subColumnWidth > 0);
         columnSpanningValue += subColumnWidth;
         columnSpanningIndex++;
       }
@@ -2145,7 +2352,7 @@ namespace HtmlToFlowDocument
 
       columnSpan = columnSpanningIndex - columnIndex;
       columnSpan = Math.Max(1, columnSpan);
-      Debug.Assert(columnSpan > 0);
+      DebugAssert(columnSpan > 0);
 
       return columnSpan;
     }
@@ -2159,7 +2366,7 @@ namespace HtmlToFlowDocument
     /// </param>
     private static void VerifyColumnStartsAscendingOrder(ArrayList columnStarts)
     {
-      Debug.Assert(columnStarts != null);
+      DebugAssert(columnStarts != null);
 
       double columnStart;
 
@@ -2167,7 +2374,7 @@ namespace HtmlToFlowDocument
 
       foreach (object t in columnStarts)
       {
-        Debug.Assert(columnStart < (double)t);
+        DebugAssert(columnStart < (double)t);
         columnStart = (double)t;
       }
     }
@@ -2185,64 +2392,85 @@ namespace HtmlToFlowDocument
     ///     XmlElement representing Xaml element to which properties are to be applied
     /// </param>
     /// <param name="localProperties">
-    ///     Hashtable representing local properties of Html element that is converted into xamlElement
+    ///     Dictionary<string, object> representing local properties of Html element that is converted into xamlElement
     /// </param>
-    private static void ApplyLocalProperties(TextElement xamlElement, Hashtable localProperties, bool isBlock)
+    private void ApplyLocalProperties(TextElement xamlElement, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, bool isBlock)
     {
       bool marginSet = false;
-      string marginTop = "0";
-      string marginBottom = "0";
-      string marginLeft = "0";
-      string marginRight = "0";
+      ExCSS.Length? marginTop = null;
+      ExCSS.Length? marginBottom = null;
+      ExCSS.Length? marginLeft = null;
+      ExCSS.Length? marginRight = null;
 
       bool paddingSet = false;
-      string paddingTop = "0";
-      string paddingBottom = "0";
-      string paddingLeft = "0";
-      string paddingRight = "0";
+      ExCSS.Length? paddingTop = null;
+      ExCSS.Length? paddingBottom = null;
+      ExCSS.Length? paddingLeft = null;
+      ExCSS.Length? paddingRight = null;
 
-      string borderColor = null;
+      ExCSS.Color? borderColor = null;
 
       bool borderThicknessSet = false;
-      string borderThicknessTop = "0";
-      string borderThicknessBottom = "0";
-      string borderThicknessLeft = "0";
-      string borderThicknessRight = "0";
+      ExCSS.Length? borderThicknessTop = null;
+      ExCSS.Length? borderThicknessBottom = null;
+      ExCSS.Length? borderThicknessLeft = null;
+      ExCSS.Length? borderThicknessRight = null;
 
-      IDictionaryEnumerator propertyEnumerator = localProperties.GetEnumerator();
-      while (propertyEnumerator.MoveNext())
+      var localProperties = sourceContext[sourceContext.Count - 1].elementProperties;
+
+      double? currentFontSize = null;
+
+      foreach (var entry in localProperties)
       {
-        switch ((string)propertyEnumerator.Key)
+        switch (entry.Key)
         {
           case "font-family":
             //  Convert from font-family value list into xaml FontFamily value
-            xamlElement.FontFamily = (string)propertyEnumerator.Value;
+            xamlElement.FontFamily = (string)entry.Value;
             break;
           case "font-style":
-            xamlElement.FontStyle = PropertyExtensions.GetFontStyle((string)propertyEnumerator.Value);
+            xamlElement.FontStyle = PropertyExtensions.GetFontStyle((string)entry.Value);
             break;
           case "font-variant":
             //  Convert from font-variant into xaml property
             break;
           case "font-weight":
-            xamlElement.FontWeight = PropertyExtensions.GetFontWeight((string)propertyEnumerator.Value);
+            xamlElement.FontWeight = PropertyExtensions.GetFontWeight((string)entry.Value);
             break;
           case "font-size":
             //  Convert from css size into FontSize
-            xamlElement.FontSize = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
+            currentFontSize = GetAbsoluteFontSizeForContext("font-size", sourceContext, null);
+            xamlElement.FontSize = currentFontSize;
+            break;
+          case "line-height":
+            if (xamlElement is Block block)
+            {
+              if (entry.Value is double d)
+                block.LineHeight = d;
+              else if (entry.Value is string s)
+              {
+                switch (s)
+                {
+                  case "normal":
+                    block.LineHeight = 1;
+                    break;
+                  default:
+                    break;
+                }
+              }
+            }
             break;
           case "color":
-            xamlElement.Foreground = PropertyExtensions.GetColor((string)propertyEnumerator.Value);
+            xamlElement.Foreground = GetColor(entry.Value, ExCSS.Color.Black);
             break;
           case "background-color":
-            xamlElement.Background = PropertyExtensions.GetColor((string)propertyEnumerator.Value);
+            xamlElement.Background = GetColor(entry.Value, ExCSS.Color.White);
             break;
           case "text-decoration-underline":
             if (xamlElement is Paragraph pa)
             {
               pa.TextDecorations = TextDecorations.Underline;
             }
-
             break;
           case "text-decoration-none":
           case "text-decoration-overline":
@@ -2263,14 +2491,14 @@ namespace HtmlToFlowDocument
               if (xamlElement is Section s)
               {
                 // Section does not support indent-> instead we use margin
-
-                var val = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
-
-                s.Margin = s.Margin == null ? new Thickness { Left = val ?? 0 } : s.Margin.Value.WithLeft(s.Margin.Value.Left + val ?? 0);
+                var val = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
+                s.Margin = s.Margin == null ?
+                  new Thickness { Left = val ?? new ExCSS.Length(0, ExCSS.Length.Unit.Px) } :
+                  s.Margin.Value.WithLeft(Add(s.Margin.Value.Left, val) ?? ZeroPixel);
               }
               else if (xamlElement is Paragraph p)
               {
-                p.TextIndent = PropertyExtensions.GetFontSize((string)propertyEnumerator.Value, xamlElement.FontSizeLocalOrInherited.Value);
+                p.TextIndent = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
               }
             }
             break;
@@ -2278,10 +2506,28 @@ namespace HtmlToFlowDocument
           case "text-align":
             if (xamlElement is Block bb)
             {
-              bb.TextAlignment = PropertyExtensions.GetTextAlignment((string)propertyEnumerator.Value);
+              bb.TextAlignment = PropertyExtensions.GetTextAlignment((string)entry.Value);
             }
             break;
-
+          case "vertical-align":
+            {
+              if (xamlElement is Inline inline)
+              {
+                if (entry.Value is ExCSS.VerticalAlignment valign)
+                {
+                  inline.VerticalAlignment = valign;
+                }
+                else if (entry.Value is ExCSS.Length vlength)
+                {
+                  // TODO? Not implemented yet
+                }
+                else
+                {
+                  // Silently ignore too
+                }
+              }
+            }
+            break;
           case "width":
           case "height":
             //  Decide what to do with width and height propeties
@@ -2289,51 +2535,51 @@ namespace HtmlToFlowDocument
 
           case "margin-top":
             marginSet = true;
-            marginTop = (string)propertyEnumerator.Value;
+            marginTop = GetMargin(entry.Value, ref currentFontSize, sourceContext);
             break;
           case "margin-right":
             marginSet = true;
-            marginRight = (string)propertyEnumerator.Value;
+            marginRight = GetMargin(entry.Value, ref currentFontSize, sourceContext);
             break;
           case "margin-bottom":
             marginSet = true;
-            marginBottom = (string)propertyEnumerator.Value;
+            marginBottom = GetMargin(entry.Value, ref currentFontSize, sourceContext);
             break;
           case "margin-left":
             marginSet = true;
-            marginLeft = (string)propertyEnumerator.Value;
+            marginLeft = GetMargin(entry.Value, ref currentFontSize, sourceContext);
             break;
 
           case "padding-top":
             paddingSet = true;
-            paddingTop = (string)propertyEnumerator.Value;
+            paddingTop = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-right":
             paddingSet = true;
-            paddingRight = (string)propertyEnumerator.Value;
+            paddingRight = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-bottom":
             paddingSet = true;
-            paddingBottom = (string)propertyEnumerator.Value;
+            paddingBottom = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "padding-left":
             paddingSet = true;
-            paddingLeft = (string)propertyEnumerator.Value;
+            paddingLeft = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
 
           // NOTE: css names for elementary border styles have side indications in the middle (top/bottom/left/right)
           // In our internal notation we intentionally put them at the end - to unify processing in ParseCssRectangleProperty method
           case "border-color-top":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = GetColor(entry.Value, ExCSS.Color.Black);
             break;
           case "border-color-right":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = GetColor(entry.Value, ExCSS.Color.Black);
             break;
           case "border-color-bottom":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = GetColor(entry.Value, ExCSS.Color.Black);
             break;
           case "border-color-left":
-            borderColor = (string)propertyEnumerator.Value;
+            borderColor = GetColor(entry.Value, ExCSS.Color.Black);
             break;
           case "border-style-top":
           case "border-style-right":
@@ -2343,26 +2589,26 @@ namespace HtmlToFlowDocument
             break;
           case "border-width-top":
             borderThicknessSet = true;
-            borderThicknessTop = (string)propertyEnumerator.Value;
+            borderThicknessTop = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-right":
             borderThicknessSet = true;
-            borderThicknessRight = (string)propertyEnumerator.Value;
+            borderThicknessRight = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-bottom":
             borderThicknessSet = true;
-            borderThicknessBottom = (string)propertyEnumerator.Value;
+            borderThicknessBottom = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
           case "border-width-left":
             borderThicknessSet = true;
-            borderThicknessLeft = (string)propertyEnumerator.Value;
+            borderThicknessLeft = ResolveRemEmExCh((ExCSS.Length?)entry.Value, ref currentFontSize, sourceContext);
             break;
 
           case "list-style-type":
             if (xamlElement is List list)
             {
 
-              switch (((string)propertyEnumerator.Value).ToLower())
+              switch (((string)entry.Value).ToLower())
               {
                 case "disc":
                   list.MarkerStyle = ListMarkerStyle.Disc;
@@ -2419,27 +2665,497 @@ namespace HtmlToFlowDocument
       {
         if (marginSet)
         {
-          b.Margin = PropertyExtensions.GetThickness(marginLeft, marginRight, marginTop, marginBottom, b.FontSizeLocalOrInherited.Value);
+          b.Margin = PropertyExtensions.GetThickness(left: marginLeft, right: marginRight, top: marginTop, bottom: marginBottom);
         }
 
         if (paddingSet)
         {
-          b.Padding = PropertyExtensions.GetThickness(paddingLeft, paddingRight, paddingTop, paddingBottom, b.FontSizeLocalOrInherited.Value);
+          b.Padding = PropertyExtensions.GetThickness(left: paddingLeft, right: paddingRight, top: paddingTop, bottom: paddingBottom);
         }
 
         if (borderColor != null)
         {
           //  We currently ignore possible difference in brush colors on different border sides. Use the last colored side mentioned
-          b.BorderBrush = PropertyExtensions.GetColor(borderColor);
+          b.BorderBrush = borderColor;
         }
 
         if (borderThicknessSet)
         {
-          b.BorderThickness = PropertyExtensions.GetThickness(borderThicknessLeft, borderThicknessRight, borderThicknessTop, borderThicknessBottom, b.FontSizeLocalOrInherited.Value);
+          b.BorderThickness = PropertyExtensions.GetThickness(left: borderThicknessLeft, right: borderThicknessRight, top: borderThicknessTop, bottom: borderThicknessBottom);
         }
+      }
+
+    }
+
+    private ExCSS.Length? ResolveRemEmExCh(ExCSS.Length? length, ref double? currentFontSizePx, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    {
+      if (length.HasValue)
+      {
+        var l = length.Value;
+        switch (l.Type)
+        {
+          case ExCSS.Length.Unit.Em:
+            currentFontSizePx = currentFontSizePx ?? GetAbsoluteFontSizeForContext("font-size", sourceContext, currentLevel);
+            return new ExCSS.Length((float)(l.Value * currentFontSizePx.Value), ExCSS.Length.Unit.Px);
+          case ExCSS.Length.Unit.Rem:
+            return new ExCSS.Length(l.Value * FontSizeRootPx, ExCSS.Length.Unit.Px);
+          case ExCSS.Length.Unit.Ex:
+            // we approximate the small X by using the half of the font size
+            currentFontSizePx = currentFontSizePx ?? GetAbsoluteFontSizeForContext("font-size", sourceContext, currentLevel);
+            return new ExCSS.Length((float)(0.5 * currentFontSizePx.Value), ExCSS.Length.Unit.Px);
+          case ExCSS.Length.Unit.Ch:
+            // we approximate the width of the 0 by using half of the font size
+            currentFontSizePx = currentFontSizePx ?? GetAbsoluteFontSizeForContext("font-size", sourceContext, currentLevel);
+            return new ExCSS.Length((float)(0.5 * currentFontSizePx.Value), ExCSS.Length.Unit.Px);
+          default:
+            return l;
+
+        }
+      }
+      else
+      {
+        return length;
       }
     }
 
+    private static ExCSS.Color? GetColor(object value, ExCSS.Color normalColor)
+    {
+      if (value is ExCSS.Color color)
+        return color;
+      else if (value is string s)
+      {
+        switch (s)
+        {
+          case ExCSS.Keywords.Normal:
+            return normalColor;
+          case ExCSS.Keywords.Inherit:
+            return null;
+          default:
+            return null;
+        }
+      }
+      else
+      {
+        return null;
+      }
+    }
+
+    private ExCSS.Length GetMargin(object value, ref double? currentFontSize, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    {
+      if (value is ExCSS.Length l)
+      {
+        return ResolveRemEmExCh(l, ref currentFontSize, sourceContext).Value;
+      }
+      else if (value is string s)
+      {
+        switch (s)
+        {
+          case ExCSS.Keywords.Auto:
+            return new ExCSS.Length(25, ExCSS.Length.Unit.Percent);
+          default:
+            return ZeroPixel;
+        }
+      }
+      else
+        return ZeroPixel;
+    }
+
+    private CompoundLength GetCompoundWidthOrHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    {
+      if (propertyName != "width" && propertyName != "height")
+        throw new ArgumentException("must either be 'width' or 'height'", nameof(propertyName));
+
+      CompoundLength result = null;
+
+      for (int i = sourceContext.Count - 1; i >= 0; --i)
+      {
+        var elementProperties = sourceContext[i].elementProperties;
+        CompoundLength currentCompoundLength = null;
+        bool isRelevant = false;
+        if (propertyName == "width")
+        {
+          isRelevant =
+            elementProperties.ContainsKey(propertyName) ||
+            elementProperties.ContainsKey("margin-left") ||
+            elementProperties.ContainsKey("margin-right") ||
+            elementProperties.ContainsKey("border-left-width") ||
+            elementProperties.ContainsKey("border-right-width") ||
+            elementProperties.ContainsKey("padding-left") ||
+            elementProperties.ContainsKey("padding-right");
+        }
+        else if (propertyName == "height")
+        {
+          isRelevant =
+            elementProperties.ContainsKey(propertyName) ||
+            elementProperties.ContainsKey("margin-top") ||
+            elementProperties.ContainsKey("margin-bottom") ||
+            elementProperties.ContainsKey("border-top-width") ||
+            elementProperties.ContainsKey("border-bottom-width") ||
+            elementProperties.ContainsKey("padding-top") ||
+            elementProperties.ContainsKey("padding-bottom");
+        }
+
+        if (!isRelevant)
+          continue;
+
+        elementProperties.TryGetValue(propertyName, out var w);
+
+        if (w is ExCSS.Length length)
+        {
+          double? currentFontSize = null;
+          length = ResolveRemEmExCh(length, ref currentFontSize, sourceContext, i).Value;
+          currentCompoundLength = new CompoundLength { [length.Type] = length };
+        }
+        else if (w is string s)
+        {
+          switch (s)
+          {
+            case "auto":
+              currentCompoundLength = CreateCompoundLengthFromAutoSize(propertyName, sourceContext[i].elementProperties, sourceContext, i);
+              break;
+            default:
+              throw new NotImplementedException($"The string <<{s}>> is not recognized as a valid length");
+          }
+        }
+        else if (w is null)
+        {
+          // consider a value of null as autosize
+          currentCompoundLength = CreateCompoundLengthFromAutoSize(propertyName, sourceContext[i].elementProperties, sourceContext, i);
+        }
+        else
+        {
+          throw new NotImplementedException($"The type <<{w?.GetType()}>> is not recognized as a valid length");
+        }
+
+
+        if (null == result)
+        {
+          result = currentCompoundLength;
+        }
+        else
+        {
+          result = CompoundLength.Multiply(result, currentCompoundLength);
+        }
+
+        if (result.IsDetermined())
+          return result;
+      }
+
+      return new CompoundLength { [ExCSS.Length.Unit.Percent] = new ExCSS.Length(100, ExCSS.Length.Unit.Percent) };
+    }
+
+
+    /// <summary>
+    /// Creates a compound length if the size (either 'width' or 'height') of the element is set to 'auto'. In this case, margin, border, and padding
+    /// of the element have to be taken into account.
+    /// </summary>
+    /// <param name="propertyName">Name of the property (has to be either 'width' or 'height').</param>
+    /// <param name="elementProperties">The properties of the element.</param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException">GetAutoCompoundLength is suited only for width and height</exception>
+    private CompoundLength CreateCompoundLengthFromAutoSize(string propertyName, Dictionary<string, object> elementProperties, List<(System.Xml.XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? currentLevel = null)
+    {
+      var result = new CompoundLength
+      {
+        [ExCSS.Length.Unit.Percent] = new ExCSS.Length(100, ExCSS.Length.Unit.Percent)
+      };
+
+      double? currentFontSizePx = null;
+      switch (propertyName)
+      {
+        case "width":
+          {
+            if (elementProperties.TryGetValue("margin-left", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("margin-right", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("border-left-width", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("border-right-width", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("padding-left", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("padding-right", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          break;
+        case "height":
+          {
+            if (elementProperties.TryGetValue("margin-top", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("margin-bottom", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("border-top-width", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("border-bottom-width", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("padding-top", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          {
+            if (elementProperties.TryGetValue("padding-bottom", out var v) && v is ExCSS.Length len)
+            {
+              len = ResolveRemEmExCh(len, ref currentFontSizePx, sourceContext, currentLevel).Value;
+              result.Add(len, -1);
+            }
+          }
+          break;
+        default:
+          throw new NotImplementedException("GetAutoCompoundLength is suited only for width and height");
+      }
+
+      return result;
+    }
+
+    private ExCSS.Length? GetMaxWidthOrMaxHeightForContext(string propertyName, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext)
+    {
+      if (propertyName != "max-width" && propertyName != "max-height")
+        throw new ArgumentException("must either be 'max-width' or 'max-height'", nameof(propertyName));
+
+      ExCSS.Length? result = null;
+
+      for (int i = sourceContext.Count - 1; i >= 0; --i)
+      {
+        var elementProperties = sourceContext[i].elementProperties;
+        bool isRelevant = elementProperties.ContainsKey(propertyName);
+
+        if (!isRelevant)
+          continue;
+
+        elementProperties.TryGetValue(propertyName, out var w);
+
+        if (w is ExCSS.Length length)
+        {
+          double? currentFontSize = null;
+          length = ResolveRemEmExCh(length, ref currentFontSize, sourceContext, i).Value;
+          if (null == result)
+            result = length;
+          else if (result.Value.Type == ExCSS.Length.Unit.Percent)
+            result = new ExCSS.Length(result.Value.Value * length.Value / 100, length.Type);
+          else
+            throw new InvalidProgramException();
+        }
+        else if (w is string s)
+        {
+          switch (s)
+          {
+            case "none":
+              return null;
+            case "initial":
+              i = Math.Min(1, i);
+              break;
+            case "inherit":
+              break;
+            default:
+              throw new NotImplementedException($"The string <<{s}>> is not recognized as a valid length");
+          }
+        }
+        else if (w is null)
+        {
+          // consider a value of null as 100%, and fall through
+
+        }
+        else
+        {
+          throw new NotImplementedException($"The type <<{w?.GetType()}>> is not recognized as a valid length");
+        }
+
+        if (result != null && result.Value.Type != ExCSS.Length.Unit.Percent)
+          break;
+      }
+
+      return result;
+    }
+
+    private static ExCSS.Length? GetFontSize(object value)
+    {
+      if (value is ExCSS.Length l)
+        return l;
+      else if (value is ExCSS.Percent p)
+        return new ExCSS.Length(p.Value, ExCSS.Length.Unit.Percent);
+      else if (value is string s)
+      {
+        if (ExCSS.Map.FontSizes.TryGetValue(s, out var fs))
+          return ExCSS.ValueExtensions.ToLength(fs);
+        else
+        {
+          switch (s)
+          {
+            case ExCSS.Keywords.Inherit:
+              return null;
+
+            default:
+              throw new NotImplementedException($"FontSize string value {s} is not implemented");
+          }
+        }
+      }
+      else
+      {
+        throw new NotImplementedException($"FontSize of type {value?.GetType()} is not implemented");
+      }
+
+    }
+
+    private static double GetAbsoluteFontSizeForContext(string property, List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext, int? levelToBeginWith)
+    {
+      ExCSS.Length? result = null;
+      levelToBeginWith = levelToBeginWith ?? sourceContext.Count - 1;
+      for (int i = levelToBeginWith.Value; i >= 0; --i)
+      {
+        if (sourceContext[i].elementProperties.TryGetValue(property, out var o) && GetFontSize(o) is ExCSS.Length length)
+        {
+          if (result is null)
+          {
+            result = length;
+          }
+          else
+          {
+            // result is something relative
+            result = Multiply(result.Value, length);
+          }
+
+          if (result.Value.IsAbsolute)
+          {
+            break;
+          }
+          else if (result.Value.Type == ExCSS.Length.Unit.Rem)
+          {
+            var rootSizePx = ((ExCSS.Length)sourceContext[0].elementProperties[property]).ToPixel();
+            return rootSizePx * result.Value.Value;
+          }
+        }
+      }
+
+      if (result is null)
+        throw new Exception("Can not get absolute font size");
+
+      var inPx = result.Value.ToPixel();
+
+      if (!(inPx >= 0))
+        inPx = 0;
+
+      return inPx;
+    }
+
+    private static ExCSS.Length Multiply(ExCSS.Length l1, ExCSS.Length l2)
+    {
+      if (l1.IsAbsolute && l2.IsAbsolute)
+        throw new ArgumentException("Both l1 and l2 are absolute lengths");
+
+      if (l1.Type == ExCSS.Length.Unit.Percent)
+        return new ExCSS.Length((l1.Value / 100) * l2.Value, l2.Type);
+
+      if (l2.Type == ExCSS.Length.Unit.Percent)
+        return new ExCSS.Length((l2.Value / 100) * l1.Value, l1.Type);
+
+      if (l1.Type == ExCSS.Length.Unit.Em)
+        return new ExCSS.Length(l1.Value * l2.Value, l2.Type);
+
+      if (l2.Type == ExCSS.Length.Unit.Em)
+        return new ExCSS.Length(l2.Value * l1.Value, l1.Type);
+
+
+
+      throw new ArgumentException($"Can not multiply length of type {l1.Type} and {l2.Type}");
+    }
+
+    private static ExCSS.Length? Add(ExCSS.Length l1, ExCSS.Length? l2n)
+    {
+      if (l2n is null)
+        return l1;
+
+      var l2 = l2n.Value;
+
+      if (l1.Type == l2.Type)
+        return new ExCSS.Length(l1.Value + l2.Value, l1.Type);
+
+      if (l1.IsAbsolute && l2.IsAbsolute)
+        return new ExCSS.Length(l1.ToPixel() + l2.ToPixel(), ExCSS.Length.Unit.Px);
+
+      throw new ArgumentException($"Can not add length of type {l1.Type} and {l2.Type}");
+    }
+
+    /// <summary>
+    ///     Analyzes the tag of the htmlElement and infers its associated formatted properties.
+    ///     After that parses style attribute and adds all inline css styles.
+    ///     The resulting style attributes are collected in output parameter localProperties.
+    /// </summary>
+    /// <param name="htmlElement">
+    /// </param>
+    /// <param name="inheritedProperties">
+    ///     set of properties inherited from ancestor elements. Currently not used in the code. Reserved for the future
+    ///     development.
+    /// </param>
+    /// <param name="localProperties">
+    ///     returns all formatting properties defined by this element - implied by its tag, its attributes, or its css inline
+    ///     style
+    /// </param>
+    /// <param name="stylesheet"></param>
+    /// <param name="sourceContext"></param>
+    /// <returns>
+    ///     returns a combination of previous context with local set of properties.
+    ///     This value is not used in the current code - inntended for the future development.
+    /// </returns>
+    private static void GetElementProperties(
+      XmlElement htmlElement,
+      Dictionary<string, object> localProperties,
+      CssStylesheets stylesheet,
+      List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext
+      )
+    {
+      GetElementProperties(htmlElement, localProperties, stylesheet, sourceContext, out var beforeElementProperties, out var afterElementProperties);
+    }
 
 
     /// <summary>
@@ -2463,81 +3179,85 @@ namespace HtmlToFlowDocument
     ///     returns a combination of previous context with local set of properties.
     ///     This value is not used in the current code - inntended for the future development.
     /// </returns>
-    private static Hashtable GetElementProperties(
-      XmlElement htmlElement,
-      Hashtable inheritedProperties,
-      out Hashtable localProperties,
-      CssStylesheet stylesheet,
-      List<XmlElement> sourceContext)
+    private static void GetElementProperties(
+    XmlElement htmlElement,
+    Dictionary<string, object> localProperties,
+    CssStylesheets stylesheet,
+    List<(XmlElement xmlElement, Dictionary<string, object> elementProperties)> sourceContext,
+    out Dictionary<string, object> beforeElementProperties,
+    out Dictionary<string, object> afterElementProperties
+    )
     {
-      // Start with context formatting properties
-      Hashtable currentProperties = new Hashtable();
-      IDictionaryEnumerator propertyEnumerator = inheritedProperties.GetEnumerator();
-      while (propertyEnumerator.MoveNext())
+      if (!object.ReferenceEquals(htmlElement, sourceContext[sourceContext.Count - 1].xmlElement))
       {
-        currentProperties[propertyEnumerator.Key] = propertyEnumerator.Value;
+        throw new ArgumentException("Top element of sourceContext does not contain htmlElement");
       }
+      if (!object.ReferenceEquals(localProperties, sourceContext[sourceContext.Count - 1].elementProperties))
+      {
+        throw new ArgumentException("Top element of sourceContext does not contain elementProperties");
+      }
+
 
       // Identify element name
       string elementName = htmlElement.LocalName.ToLower();
       string elementNamespace = htmlElement.NamespaceURI;
 
       // update current formatting properties depending on element tag
-
-      localProperties = new Hashtable();
-      localProperties["font-size-absolute"] = inheritedProperties["font-size-absolute"];
       switch (elementName)
       {
         // Character formatting
         case "i":
         case "italic":
         case "em":
-          localProperties["font-style"] = "italic";
+          localProperties["font-style"] = ExCSS.Keywords.Italic;
           break;
         case "b":
         case "bold":
         case "strong":
         case "dfn":
-          localProperties["font-weight"] = "bold";
+          localProperties["font-weight"] = ExCSS.Keywords.Bold;
           break;
         case "u":
         case "underline":
           localProperties["text-decoration-underline"] = "true";
           break;
         case "font":
-          string attributeValue = GetAttribute(htmlElement, "face");
-          if (attributeValue != null)
           {
-            localProperties["font-family"] = attributeValue;
-          }
-          attributeValue = GetAttribute(htmlElement, "size");
-          if (attributeValue != null)
-          {
-            double fontSize = double.Parse(attributeValue) * (12.0 / 3.0);
-            if (fontSize < 1.0)
+            if (htmlElement.GetAttribute("face") is string faceString && !string.IsNullOrEmpty(faceString))
             {
-              fontSize = 1.0;
+              localProperties["font-family"] = faceString;
             }
-            else if (fontSize > 1000.0)
+            if (htmlElement.GetAttribute("size") is string sizeString && !string.IsNullOrEmpty(sizeString))
             {
-              fontSize = 1000.0;
+              if (ExCSS.Length.TryParse(sizeString, out var fontSize))
+                localProperties["font-size"] = fontSize;
+              else if (float.TryParse(sizeString, NumberStyles.Float, CultureInfo.InvariantCulture, out var fontSizePx))
+                localProperties["font-size"] = new ExCSS.Length(fontSizePx, ExCSS.Length.Unit.Px);
+              else
+                throw new NotImplementedException();
             }
-            localProperties["font-size"] = fontSize.ToString(CultureInfo.InvariantCulture);
-          }
-          attributeValue = GetAttribute(htmlElement, "color");
-          if (attributeValue != null)
-          {
-            localProperties["color"] = attributeValue;
+            if (htmlElement.GetAttribute("color") is string colorString && !string.IsNullOrEmpty(colorString))
+            {
+              if (PropertyConverter.TryParseColor(colorString, out var color))
+                localProperties["color"] = color;
+              else
+                throw new NotImplementedException();
+            }
+
           }
           break;
         case "samp":
           localProperties["font-family"] = "Courier New"; // code sample
-          localProperties["font-size"] = XamlFontSizeXxSmall;
-          localProperties["text-align"] = "Left";
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
+          localProperties["text-align"] = ExCSS.Keywords.Left;
           break;
         case "sub":
+          localProperties["vertical-align"] = ExCSS.VerticalAlignment.Sub;
+          localProperties["font-size"] = new ExCSS.Length(3.0f / 4, ExCSS.Length.Unit.Em);
           break;
         case "sup":
+          localProperties["vertical-align"] = ExCSS.VerticalAlignment.Super;
+          localProperties["font-size"] = new ExCSS.Length(3.0f / 4, ExCSS.Length.Unit.Em);
           break;
 
         // Hyperlinks
@@ -2556,38 +3276,43 @@ namespace HtmlToFlowDocument
           break;
         case "pre":
           localProperties["font-family"] = "Courier New"; // renders text in a fixed-width font
-          localProperties["font-size"] = XamlFontSizeXxSmall;
-          localProperties["text-align"] = "Left";
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
+          localProperties["text-align"] = ExCSS.Keywords.Left;
+          break;
+        case "code":
+          localProperties["font-family"] = "Courier New"; // renders text in a fixed-width font
+          localProperties["font-size"] = new ExCSS.Length(14.0f / 16, ExCSS.Length.Unit.Em);
           break;
         case "blockquote":
-          localProperties["margin-left"] = "16";
+          localProperties["margin-left"] = ExCSS.Keywords.Medium;
           break;
 
         case "h1":
-          localProperties["font-size"] = XamlFontSizeXxLarge;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Huge);
           break;
         case "h2":
-          localProperties["font-size"] = XamlFontSizeXLarge;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Big);
           break;
         case "h3":
-          localProperties["font-size"] = XamlFontSizeLarge;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Large);
           break;
         case "h4":
-          localProperties["font-size"] = XamlFontSizeMedium;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Medium);
           break;
         case "h5":
-          localProperties["font-size"] = XamlFontSizeSmall;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Small);
           break;
         case "h6":
-          localProperties["font-size"] = XamlFontSizeXSmall;
+          localProperties["font-size"] = ExCSS.ValueExtensions.ToLength(ExCSS.FontSize.Little);
           break;
         // List properties
         case "ul":
-          localProperties["list-style-type"] = "disc";
+          localProperties["list-style-type"] = ExCSS.Keywords.Disc;
           break;
         case "ol":
-          localProperties["list-style-type"] = "decimal";
+          localProperties["list-style-type"] = ExCSS.Keywords.Decimal;
           break;
+
 
         case "table":
         case "body":
@@ -2596,18 +3321,9 @@ namespace HtmlToFlowDocument
       }
 
       // Override html defaults by css attributes - from stylesheets and inline settings
-      HtmlCssParser.GetElementPropertiesFromCssAttributes(htmlElement, elementName, stylesheet, localProperties,
-          sourceContext);
-
-      // Combine local properties with context to create new current properties
-      propertyEnumerator = localProperties.GetEnumerator();
-      while (propertyEnumerator.MoveNext())
-      {
-        currentProperties[propertyEnumerator.Key] = propertyEnumerator.Value;
-      }
-
-      return currentProperties;
+      stylesheet.GetElementProperties(htmlElement, sourceContext, localProperties, out beforeElementProperties, out afterElementProperties);
     }
+
 
     /// <summary>
     ///     Extracts a value of css attribute from css style definition.
@@ -2727,12 +3443,12 @@ namespace HtmlToFlowDocument
     private static void ApplyPropertiesToTableCellElement(XmlElement htmlChildNode, TableCell xamlTableCellElement)
     {
       // Parameter validation
-      Debug.Assert(htmlChildNode.LocalName.ToLower() == "td" || htmlChildNode.LocalName.ToLower() == "th");
+      DebugAssert(htmlChildNode.LocalName.ToLower() == "td" || htmlChildNode.LocalName.ToLower() == "th");
 
 
       // set default border thickness for xamlTableCellElement to enable gridlines
-      xamlTableCellElement.BorderThickness = new Thickness { Left = 1, Right = 1, Top = 1, Bottom = 1 };
-      xamlTableCellElement.BorderBrush = (int)0x000000FF;
+      xamlTableCellElement.BorderThickness = new Thickness { Left = OnePixel, Right = OnePixel, Top = OnePixel, Bottom = OnePixel };
+      xamlTableCellElement.BorderBrush = ExCSS.Color.Black;
 
       string rowSpanString = GetAttribute(htmlChildNode, "rowspan");
       if (rowSpanString != null)
@@ -2743,6 +3459,27 @@ namespace HtmlToFlowDocument
       }
     }
 
+
     #endregion Private Methods
+
+    private static void DebugAssert(bool condition)
+    {
+      if (!condition)
+      {
+        throw new InvalidOperationException();
+      }
+    }
+
+    private static (double? Value, string Unit) GetLocalSizeFromInheritedBlockSize((double? Value, string Unit) inherited, (double? Value, string Unit) local)
+    {
+      if (local.Unit == "%")
+      {
+        return (inherited.Value * local.Value / 100, inherited.Unit);
+      }
+      else
+      {
+        return local;
+      }
+    }
   }
 }

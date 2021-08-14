@@ -3,19 +3,19 @@ using System.Linq;
 
 namespace ExCSS
 {
-  public sealed class LinearGradient : IGradient
-  {
-    public LinearGradient(Angle angle, GradientStop[] stops, bool repeating = false)
+    public sealed class LinearGradient : IGradient
     {
-      _stops = stops;
-      Angle = angle;
-      IsRepeating = repeating;
+        public LinearGradient(Angle angle, GradientStop[] stops, bool repeating = false)
+        {
+            _stops = stops;
+            Angle = angle;
+            IsRepeating = repeating;
+        }
+
+        private readonly GradientStop[] _stops;
+
+        public Angle Angle { get; }
+        public IEnumerable<GradientStop> Stops => _stops.AsEnumerable();
+        public bool IsRepeating { get; }
     }
-
-    private readonly GradientStop[] _stops;
-
-    public Angle Angle { get; }
-    public IEnumerable<GradientStop> Stops => _stops.AsEnumerable();
-    public bool IsRepeating { get; }
-  }
 }

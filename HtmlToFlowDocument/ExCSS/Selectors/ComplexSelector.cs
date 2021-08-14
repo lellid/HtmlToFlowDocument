@@ -18,6 +18,15 @@ namespace ExCSS
       public ISelector Selector;
     }
 
+    public IEnumerable<(ISelector Selector, string Delimiter)> SelectorsReverse
+    {
+      get
+      {
+        for (int i = _selectors.Count - 1; i >= 0; --i)
+          yield return (_selectors[i].Selector, _selectors[i].Delimiter);
+      }
+    }
+
 
     public string Text => this.ToCss();
     public int Length => _selectors.Count;

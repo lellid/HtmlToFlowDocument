@@ -25,7 +25,7 @@ namespace ExCSS
       return properties.Guard<EnumeratedValue>();
     }
 
-    private sealed class EnumeratedValue : IPropertyValue
+    public sealed class EnumeratedValue : IPropertyValue
     {
       public EnumeratedValue(string identifier, IEnumerable<Token> tokens)
       {

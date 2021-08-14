@@ -1,9 +1,9 @@
 ﻿namespace ExCSS
 {
-  public enum TextAnchor : byte
-  {
-    Start,
-    Middle,
-    End
-  }
+    public enum TextAnchor : byte
+    {
+        Start,
+        Middle,
+        End
+    }
 }

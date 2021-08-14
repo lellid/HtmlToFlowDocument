@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Dr. Dirk Lellinger. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -57,14 +59,22 @@ namespace HtmlToFlowDocument.Dom
 
   public struct Thickness
   {
-    public double Left;
-    public double Right;
-    public double Top;
-    public double Bottom;
+    public ExCSS.Length Left;
+    public ExCSS.Length Right;
+    public ExCSS.Length Top;
+    public ExCSS.Length Bottom;
 
-    public Thickness WithLeft(double l)
+    public Thickness WithLeft(ExCSS.Length l)
     {
       return new Thickness { Bottom = this.Bottom, Top = this.Top, Right = this.Right, Left = l };
+    }
+
+    public override string ToString()
+    {
+      if (Left == Right && Left == Top && Left == Bottom)
+        return Left.ToString();
+      else
+        return string.Concat("(", Left.ToString(), ", ", Top.ToString(), ", ", Right.ToString(), ", ", Bottom.ToString(), ")");
     }
   }
 
@@ -592,31 +602,23 @@ namespace HtmlToFlowDocument.Dom
       else return null;
     }
 
-    // Create syntactically optimized four-value Thickness
-    public static Thickness? GetThickness(
-      string left,
-      string right,
-      string top,
-      string bottom,
-      double defaultFontSize)
-    {
-      var l = GetFontSize(left, defaultFontSize);
-      var r = GetFontSize(right, defaultFontSize);
-      var t = GetFontSize(top, defaultFontSize);
-      var b = GetFontSize(bottom, defaultFontSize);
 
+
+
+    public static Thickness? GetThickness(ExCSS.Length? left, ExCSS.Length? right, ExCSS.Length? top, ExCSS.Length? bottom)
+    {
       var result = new Thickness();
 
-      if (l.HasValue)
-        result.Left = l.Value;
-      if (r.HasValue)
-        result.Right = r.Value;
-      if (t.HasValue)
-        result.Top = t.Value;
-      if (b.HasValue)
-        result.Bottom = b.Value;
+      if (left.HasValue)
+        result.Left = left.Value;
+      if (right.HasValue)
+        result.Right = right.Value;
+      if (top.HasValue)
+        result.Top = top.Value;
+      if (bottom.HasValue)
+        result.Bottom = bottom.Value;
 
-      return l.HasValue || r.HasValue || t.HasValue || b.HasValue ? (Thickness?)result : null;
+      return left.HasValue || right.HasValue || top.HasValue || bottom.HasValue ? (Thickness?)result : null;
     }
 
   }

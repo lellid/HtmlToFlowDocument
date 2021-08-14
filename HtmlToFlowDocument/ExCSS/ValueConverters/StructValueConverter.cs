@@ -25,9 +25,9 @@ namespace ExCSS
       return properties.Guard<StructValue>();
     }
 
-    private sealed class StructValue : IPropertyValue
+    public sealed class StructValue : IPropertyValue
     {
-      private readonly T _value;
+      public readonly T _value;
 
       public StructValue(T value, IEnumerable<Token> tokens)
       {

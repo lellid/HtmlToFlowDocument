@@ -1,14 +1,14 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class DeviceHeightMediaFeature : MediaFeature
-  {
-    public DeviceHeightMediaFeature(string name)
-        : base(name)
+    internal sealed class DeviceHeightMediaFeature : MediaFeature
     {
+        public DeviceHeightMediaFeature(string name)
+            : base(name)
+        {
+        }
+
+        internal override IValueConverter Converter => Converters.LengthConverter;
+
     }
-
-    internal override IValueConverter Converter => Converters.LengthConverter;
-
-  }
 }

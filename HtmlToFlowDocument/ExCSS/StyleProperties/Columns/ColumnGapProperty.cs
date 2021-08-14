@@ -1,16 +1,16 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class ColumnGapProperty : Property
-  {
-    private static readonly IValueConverter StyleConverter =
-        Converters.LengthOrNormalConverter.OrDefault(new Length(1f, Length.Unit.Em));
-
-    internal ColumnGapProperty()
-        : base(PropertyNames.ColumnGap, PropertyFlags.Animatable)
+    internal sealed class ColumnGapProperty : Property
     {
-    }
+        private static readonly IValueConverter StyleConverter =
+            Converters.LengthOrNormalConverter.OrDefault(new Length(1f, Length.Unit.Em));
 
-    internal override IValueConverter Converter => StyleConverter;
-  }
+        internal ColumnGapProperty()
+            : base(PropertyNames.ColumnGap, PropertyFlags.Animatable)
+        {
+        }
+
+        internal override IValueConverter Converter => StyleConverter;
+    }
 }

@@ -1,11 +1,11 @@
 ﻿namespace ExCSS
 {
-  public enum TextTransform : byte
-  {
-    None,
-    Capitalize,
-    Uppercase,
-    Lowercase,
-    FullWidth
-  }
+    public enum TextTransform : byte
+    {
+        None,
+        Capitalize,
+        Uppercase,
+        Lowercase,
+        FullWidth
+    }
 }

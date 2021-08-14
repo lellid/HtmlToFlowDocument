@@ -1,10 +1,10 @@
 ﻿namespace ExCSS
 {
-  public enum AnimationDirection : byte
-  {
-    Normal,
-    Alternate,
-    Reverse,
-    AlternateReverse
-  }
+    public enum AnimationDirection : byte
+    {
+        Normal,
+        Alternate,
+        Reverse,
+        AlternateReverse
+    }
 }

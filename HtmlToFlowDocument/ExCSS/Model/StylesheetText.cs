@@ -2,33 +2,33 @@
 
 namespace ExCSS
 {
-  public class StylesheetText
-  {
-    private readonly TextSource _source;
-
-    internal StylesheetText(TextRange range, TextSource source)
+    public class StylesheetText
     {
-      Range = range;
-      _source = source;
-    }
+        private readonly TextSource _source;
 
-    public TextRange Range { get; }
-
-    public string Text
-    {
-      get
-      {
-        var start = Math.Max(Range.Start.Position - 1, 0);
-        var length = Range.End.Position + 1 - Range.Start.Position;
-        var text = _source.Text;
-
-        if (start + length > text.Length)
+        internal StylesheetText(TextRange range, TextSource source)
         {
-          length = text.Length - start;
+            Range = range;
+            _source = source;
         }
 
-        return text.Substring(start, length);
-      }
+        public TextRange Range { get; }
+
+        public string Text
+        {
+            get
+            {
+                var start = Math.Max(Range.Start.Position - 1, 0);
+                var length = Range.End.Position + 1 - Range.Start.Position;
+                var text = _source.Text;
+
+                if (start + length > text.Length)
+                {
+                    length = text.Length - start;
+                }
+
+                return text.Substring(start, length);
+            }
+        }
     }
-  }
 }

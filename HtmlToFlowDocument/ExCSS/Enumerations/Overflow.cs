@@ -1,10 +1,10 @@
 ﻿namespace ExCSS
 {
-  public enum Overflow : byte
-  {
-    Auto,
-    Visible,
-    Hidden,
-    Scroll
-  }
+    public enum Overflow : byte
+    {
+        Auto,
+        Visible,
+        Hidden,
+        Scroll
+    }
 }

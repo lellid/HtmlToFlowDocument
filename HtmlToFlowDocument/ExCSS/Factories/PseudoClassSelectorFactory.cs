@@ -3,26 +3,26 @@ using System.Collections.Generic;
 
 namespace ExCSS
 {
-  public sealed class PseudoClassSelectorFactory
-  {
-    private static readonly Lazy<PseudoClassSelectorFactory> Lazy =
-        new Lazy<PseudoClassSelectorFactory>(() =>
+    public sealed class PseudoClassSelectorFactory
+    {
+        private static readonly Lazy<PseudoClassSelectorFactory> Lazy =
+            new Lazy<PseudoClassSelectorFactory>(() =>
+                {
+                    var factory = new PseudoClassSelectorFactory();
+                    _selectors.Add(PseudoElementNames.Before, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.Before));
+                    _selectors.Add(PseudoElementNames.After, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.After));
+                    _selectors.Add(PseudoElementNames.FirstLine, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.FirstLine));
+                    _selectors.Add(PseudoElementNames.FirstLetter, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.FirstLetter));
+                    return factory;
+                }
+            );
+
+        internal static PseudoClassSelectorFactory Instance => Lazy.Value;
+
+        #region Selectors
+        private static readonly Dictionary<string, ISelector> _selectors =
+            new Dictionary<string, ISelector>(StringComparer.OrdinalIgnoreCase)
             {
-              var factory = new PseudoClassSelectorFactory();
-              _selectors.Add(PseudoElementNames.Before, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.Before));
-              _selectors.Add(PseudoElementNames.After, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.After));
-              _selectors.Add(PseudoElementNames.FirstLine, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.FirstLine));
-              _selectors.Add(PseudoElementNames.FirstLetter, PseudoElementSelectorFactory.Instance.Create(PseudoElementNames.FirstLetter));
-              return factory;
-            }
-        );
-
-    internal static PseudoClassSelectorFactory Instance => Lazy.Value;
-
-    #region Selectors
-    private static readonly Dictionary<string, ISelector> _selectors =
-        new Dictionary<string, ISelector>(StringComparer.OrdinalIgnoreCase)
-        {
                 {
                     PseudoClassNames.Root,
                     SimpleSelector.PseudoClass( PseudoClassNames.Root)
@@ -130,20 +130,20 @@ namespace ExCSS
                     SimpleSelector.PseudoClass( PseudoClassNames.Optional)
                 },
                 {PseudoClassNames.Shadow, SimpleSelector.PseudoClass( PseudoClassNames.Shadow)},
+               
+            };
+        #endregion
 
-        };
-    #endregion
+        public ISelector Create(string name)
+        {
+            ISelector selector;
 
-    public ISelector Create(string name)
-    {
-      ISelector selector;
+            if (_selectors.TryGetValue(name, out selector))
+            {
+                return selector;
+            }
 
-      if (_selectors.TryGetValue(name, out selector))
-      {
-        return selector;
-      }
-
-      return null;
+            return null;
+        }
     }
-  }
 }

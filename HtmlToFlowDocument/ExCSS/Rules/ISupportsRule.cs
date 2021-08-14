@@ -1,7 +1,7 @@
 ﻿namespace ExCSS
 {
-  public interface ISupportsRule : IConditionRule
-  {
-    IConditionFunction Condition { get; }
-  }
+    public interface ISupportsRule : IConditionRule
+    {
+        IConditionFunction Condition { get; }
+    }
 }

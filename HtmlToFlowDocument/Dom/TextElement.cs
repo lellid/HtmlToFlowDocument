@@ -1,5 +1,8 @@
-﻿using System;
+﻿// Copyright (c) Dr. Dirk Lellinger. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace HtmlToFlowDocument.Dom
@@ -18,9 +21,9 @@ namespace HtmlToFlowDocument.Dom
 
     public FontWeight? FontWeight { get; set; }
 
-    public int? Foreground { get; set; }
+    public ExCSS.Color? Foreground { get; set; }
 
-    public int? Background { get; set; }
+    public ExCSS.Color? Background { get; set; }
 
 
     /// <summary>
@@ -58,6 +61,50 @@ namespace HtmlToFlowDocument.Dom
           instance = instance.Parent;
         }
 
+        return result;
+      }
+    }
+
+    /// <summary>
+    /// Gets the foreground color this text element would inherit. The local value of ForegroundColor is not put into consideration.
+    /// </summary>
+    /// <value>
+    /// The foreground color this text element would inherit.
+    /// </value>
+    public ExCSS.Color? ForegroundInheritedOnly
+    {
+      get
+      {
+        var instance = this.Parent;
+        ExCSS.Color? result = null;
+        while (instance != null && result == null)
+        {
+
+          result = instance.Foreground;
+          instance = instance.Parent;
+        }
+        return result;
+      }
+    }
+
+    /// <summary>
+    /// Gets the background color this text element would inherit. The local value of BackgroundColor is not put into consideration.
+    /// </summary>
+    /// <value>
+    /// The background color this text element would inherit.
+    /// </value>
+    public ExCSS.Color? BackgroundInheritedOnly
+    {
+      get
+      {
+        var instance = this.Parent;
+        ExCSS.Color? result = null;
+        while (instance != null && result == null)
+        {
+
+          result = instance.Background;
+          instance = instance.Parent;
+        }
         return result;
       }
     }
@@ -142,6 +189,29 @@ namespace HtmlToFlowDocument.Dom
       else
         return this._childs.Remove(child);
     }
+    #endregion
+
+    #region Debugging and Displaying
+
+    public virtual string ShortDescription
+    {
+      get
+      {
+        if (this is Run r && r.Text != null)
+        {
+          return string.Concat(this.GetType().Name, " | ", r.Text.Substring(0, Math.Min(32, r.Text.Length)));
+        }
+        else if (TextElementExtensions.GetThisAndAllChilds(this).OfType<Run>().FirstOrDefault((rr => rr.Text?.Length > 0)) is Run rchild)
+        {
+          return string.Concat(this.GetType().Name, " | ", rchild.Text.Substring(0, Math.Min(32, rchild.Text.Length)));
+        }
+        else
+        {
+          return this.GetType().Name;
+        }
+      }
+    }
+
     #endregion
 
   }

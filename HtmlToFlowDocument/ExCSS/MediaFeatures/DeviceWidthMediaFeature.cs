@@ -1,14 +1,14 @@
 ﻿
 namespace ExCSS
 {
-  internal sealed class DeviceWidthMediaFeature : MediaFeature
-  {
-    public DeviceWidthMediaFeature(string name)
-        : base(name)
+    internal sealed class DeviceWidthMediaFeature : MediaFeature
     {
+        public DeviceWidthMediaFeature(string name)
+            : base(name)
+        {
+        }
+
+        internal override IValueConverter Converter => Converters.LengthConverter;
+
     }
-
-    internal override IValueConverter Converter => Converters.LengthConverter;
-
-  }
 }

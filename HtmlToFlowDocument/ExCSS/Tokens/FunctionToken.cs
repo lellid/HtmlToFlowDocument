@@ -5,50 +5,50 @@ using System.Linq;
 
 namespace ExCSS
 {
-  internal sealed class FunctionToken : Token, IEnumerable<Token>
-  {
-    private readonly List<Token> _arguments;
-
-    public FunctionToken(string data, TextPosition position)
-        : base(TokenType.Function, data, position)
+    internal sealed class FunctionToken : Token, IEnumerable<Token>
     {
-      _arguments = new List<Token>();
-    }
+        private readonly List<Token> _arguments;
 
-
-    public IEnumerable<Token> ArgumentTokens
-    {
-      get
-      {
-        var final = _arguments.Count - 1;
-
-        if ((final >= 0) && (_arguments[final].Type == TokenType.RoundBracketClose))
+        public FunctionToken(string data, TextPosition position)
+            : base(TokenType.Function, data, position)
         {
-          final--;
+            _arguments = new List<Token>();
         }
 
-        return _arguments.Take(1 + final);
-      }
-    }
 
-    public override string ToValue()
-    {
-      return string.Concat(Data, "(", _arguments.ToText());
-    }
+        public IEnumerable<Token> ArgumentTokens
+        {
+            get
+            {
+                var final = _arguments.Count - 1;
 
-    public void AddArgumentToken(Token token)
-    {
-      _arguments.Add(token);
-    }
+                if ((final >= 0) && (_arguments[final].Type == TokenType.RoundBracketClose))
+                {
+                    final--;
+                }
 
-    public IEnumerator<Token> GetEnumerator()
-    {
-      return _arguments.GetEnumerator();
-    }
+                return _arguments.Take(1 + final);
+            }
+        }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-      return GetEnumerator();
+        public override string ToValue()
+        {
+            return string.Concat(Data, "(", _arguments.ToText());
+        }
+
+        public void AddArgumentToken(Token token)
+        {
+            _arguments.Add(token);
+        }
+
+        public IEnumerator<Token> GetEnumerator()
+        {
+            return _arguments.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
-  }
 }

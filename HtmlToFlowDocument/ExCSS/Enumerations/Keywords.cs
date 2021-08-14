@@ -3,10 +3,10 @@
   internal static class Keywords
   {
     public static readonly string Important = "important";
-    public static readonly string Inherit = "inherit";
+    public const string Inherit = "inherit";
     public static readonly string Initial = "initial";
     public static readonly string None = "none";
-    public static readonly string Auto = "auto";
+    public const string Auto = "auto";
     public static readonly string From = "from";
     public static readonly string To = "to";
     public static readonly string Always = "always";
@@ -71,7 +71,7 @@
     public static readonly string MessageBox = "message-box";
     public static readonly string SmallCaption = "small-caption";
     public static readonly string StatusBar = "status-bar";
-    public static readonly string Normal = "normal";
+    public const string Normal = "normal";
     public static readonly string Italic = "italic";
     public static readonly string Oblique = "oblique";
     public static readonly string UltraCondensed = "ultra-condensed";

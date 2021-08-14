@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace HtmlToFlowDocument
+namespace HtmlToFlowDocument.HtmlParsing
 {
   /// <summary>
   ///     lexical analyzer class

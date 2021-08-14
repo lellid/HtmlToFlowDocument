@@ -2,9 +2,9 @@
 
 namespace ExCSS
 {
-  internal static class PortNumbers
-  {
-    private static readonly Dictionary<string, string> Ports = new Dictionary<string, string>
+    internal static class PortNumbers
+    {
+        private static readonly Dictionary<string, string> Ports = new Dictionary<string, string>
         {
             {ProtocolNames.Http, "80"},
             {ProtocolNames.Https, "443"},
@@ -17,11 +17,11 @@ namespace ExCSS
             {ProtocolNames.Ssh, "22"}
         };
 
-    public static string GetDefaultPort(string protocol)
-    {
-      string value;
-      Ports.TryGetValue(protocol, out value);
-      return value;
+        public static string GetDefaultPort(string protocol)
+        {
+            string value;
+            Ports.TryGetValue(protocol, out value);
+            return value;
+        }
     }
-  }
 }
