@@ -109,6 +109,23 @@ namespace HtmlToFlowDocument
     /// This method has a fallback mechanism: if conversion from XHTML to a XML document fails, the
     /// text is treated as normal HTML text, and tried to normalized first.
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Implement a function that returns the contents of the stylesheet with name 'stylesheetName'
+    /// // You can also use the html file name the stylesheet is referenced from, in case there are multiple css files with the same name.
+    /// string GetStyleSheet(string stylesheetName, string htmlFileNameReferencedFrom)
+    ///   {
+    ///      string stylesheetContent = ... (load content of the stylesheet 'stylesheetName')
+    ///      return stylesheetContent;
+    ///   }
+    ///
+    /// // now the convert function can be called
+    /// // the last argument (nameOfTheHtmlFile) is passed as the second argument to GetStyleSheet
+    /// var converter = new Converter();
+    /// var flowDocument = converter.Convert(xhtmlString, true, GetStyleSheet, nameOfTheHtmlFile);
+    /// // now bring the flowDocument into view
+    /// </code>
+    /// </example>
     public TextElement ConvertXHtml(string xhtmlString, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string xhtmlFileName)
     {
       XmlElement htmlElement;
@@ -152,6 +169,23 @@ namespace HtmlToFlowDocument
     /// <returns>
     /// The root <see cref="TextElement"/> of the Dom tree that represents the XHTML tree.
     /// </returns>
+    /// <example>
+    /// <code>
+    /// // Implement a function that returns the contents of the stylesheet with name 'stylesheetName'
+    /// // You can also use the html file name the stylesheet is referenced from, in case there are multiple css files with the same name.
+    /// string GetStyleSheet(string stylesheetName, string htmlFileNameReferencedFrom)
+    ///   {
+    ///      string stylesheetContent = ... (load content of the stylesheet 'stylesheetName')
+    ///      return stylesheetContent;
+    ///   }
+    ///
+    /// // now the convert function can be called
+    /// // the last argument (nameOfTheHtmlFile) is passed as the second argument to GetStyleSheet
+    /// var converter = new Converter();
+    /// var flowDocument = converter.Convert(htmlElement, true, GetStyleSheet, nameOfTheHtmlFile);
+    /// // now bring the flowDocument into view
+    /// </code>
+    /// </example>
     public TextElement Convert(XmlElement htmlElement, bool asFlowDocument, Func<string, string, string> cssStyleSheetProvider, string htmlFileName)
     {
       // Source context is a stack of all elements - ancestors of a parentElement
